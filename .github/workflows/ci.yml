@@ -5,7 +5,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, plataforma]
   pull_request:
 
 jobs:
