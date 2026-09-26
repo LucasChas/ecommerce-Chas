@@ -18,10 +18,11 @@ interface Props {
   onChanged: () => void
 }
 
-// Comprime y sube un archivo al bucket "productos" de Storage; devuelve su URL.
+// Comprime y sube un archivo al bucket "productos" de Storage, en la carpeta
+// de la tienda (las políticas solo dejan subir ahí); devuelve su URL.
 async function subirImagen(file: File): Promise<string> {
   const blob = await comprimirImagen(file) // se sube liviana (JPEG)
-  const nombre = `${crypto.randomUUID()}.jpg`
+  const nombre = `${tienda().id}/${crypto.randomUUID()}.jpg`
   const { error } = await supabase.storage
     .from('productos')
     .upload(nombre, blob, { cacheControl: '3600', upsert: false, contentType: 'image/jpeg' })
@@ -185,7 +186,7 @@ export default function ProductFormSheet({
     if (!limpio) return
     const { data, error } = await supabase
       .from('categorias')
-      .insert({ nombre: limpio })
+      .insert({ tienda_id: tienda().id, nombre: limpio })
       .select()
       .single()
     if (error) {
@@ -255,7 +256,7 @@ export default function ProductFormSheet({
       } else {
         const { data, error } = await supabase
           .from('productos')
-          .insert({ ...payload, stock: conVariantes ? 0 : payload.stock })
+          .insert({ ...payload, tienda_id: tienda().id, stock: conVariantes ? 0 : payload.stock })
           .select('id')
           .single()
         if (error) throw error

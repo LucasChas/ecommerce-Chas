@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ProductoConCategoria, Variante } from '../types'
 import { portadaDe } from '../lib/images'
+import { SLUG } from '../lib/contexto'
 
 // Un ítem del carrito guarda una "foto" de los datos del producto al momento de
 // agregarlo (así el carrito no se rompe si el producto cambia). El precio y el
@@ -52,7 +53,8 @@ interface CartContextValue {
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
-const STORAGE_KEY = 'tienda_cart_v1'
+// Un carrito por tienda (se guarda en el navegador de la clienta).
+const STORAGE_KEY = `tienda_cart_v1_${SLUG ?? 'plataforma'}`
 
 function leerStorage(): CartItem[] {
   try {

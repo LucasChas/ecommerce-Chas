@@ -13,15 +13,8 @@ import { PrivacyPage } from './pages/PrivacyPage'
 import PaymentResultPage from './pages/PaymentResultPage'
 import { TermsPage } from './pages/TermsPage'
 import { tienda } from './tienda'
-// El "modo" define qué expone cada deploy (ver VITE_APP_MODE en .env):
-//   - 'admin'   -> deploy privado: SOLO el panel, servido en la raíz "/".
-//   - 'catalog' -> deploy público: muestrario + páginas de producto. /admin no existe.
-//   - sin definir (desarrollo local) -> todas las rutas.
-//
-// Con esto podés crear dos proyectos de Vercel desde el MISMO repo, cada uno
-// con su dominio y su variable, sin que el admin sea accesible desde la web pública.
-const mode = import.meta.env.VITE_APP_MODE
-
+import { BASE } from './lib/contexto'
+import TiendaPausada from './pages/TiendaPausada'
 // Layout del catálogo: monta el carrito lateral (drawer) una sola vez, disponible
 // en todas las vistas públicas (muestrario, producto, carrito, checkout).
 function CatalogLayout() {
@@ -34,7 +27,7 @@ function CatalogLayout() {
   )
 }
 
-// Rutas públicas del catálogo (se reusan en modo 'catalog' y en local).
+// Rutas públicas de la tienda.
 // Las de carrito y cuentas solo existen si la tienda tiene esas features
 // (tienda.config.mjs → features); si no, caen en el redirect a "/".
 function RutasCatalogo() {
@@ -55,38 +48,21 @@ function RutasCatalogo() {
   )
 }
 
+// App de UNA tienda de la plataforma. El router usa BASE ("/t/<slug>") como
+// basename, así que todas las rutas y links de la tienda se escriben igual
+// que si fuera la única ("/carrito", "/admin"...).
+//
+// Si la tienda está pausada (prueba vencida sin suscripción, o suspendida),
+// la vitrina muestra un aviso y solo queda abierto su panel (/admin), para
+// que la dueña pueda regularizarla.
 export default function App() {
-  if (mode === 'admin') {
-    // Deploy privado: el panel vive en la raíz; cualquier otra ruta redirige ahí.
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AdminPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    )
-  }
-
-  if (mode === 'catalog') {
-    // Deploy público: muestrario + detalle + carrito/checkout. No se registra /admin.
-    return (
-      <BrowserRouter>
-        <Routes>
-          {RutasCatalogo()}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    )
-  }
-
-  // Desarrollo local: todas las vistas disponibles.
+  const { habilitada } = tienda()
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={BASE}>
       <Routes>
-        {RutasCatalogo()}
+        {habilitada ? RutasCatalogo() : <Route path="*" element={<TiendaPausada />} />}
         <Route path="/admin" element={<AdminPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {habilitada && <Route path="*" element={<Navigate to="/" replace />} />}
       </Routes>
     </BrowserRouter>
   )

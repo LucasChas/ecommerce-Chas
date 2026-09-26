@@ -3,6 +3,7 @@ import type { Categoria, ProductoConCategoria } from '../../types'
 import { supabase } from '../../lib/supabaseClient'
 import { useDialog } from '../../context/DialogContext'
 import { t } from '../../i18n/textos'
+import { tienda } from '../../tienda'
 
 interface Props {
   open: boolean
@@ -43,7 +44,7 @@ export default function CategoryManagerSheet({
   async function agregar() {
     const limpio = nueva.trim()
     if (!limpio) return
-    const { error } = await supabase.from('categorias').insert({ nombre: limpio })
+    const { error } = await supabase.from('categorias').insert({ tienda_id: tienda().id, nombre: limpio })
     if (error) {
       setError('No se pudo agregar: ' + error.message)
       return

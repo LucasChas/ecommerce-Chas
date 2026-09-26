@@ -2,8 +2,10 @@
 // pnpm emails
 //
 // Completa las plantillas de mail de Supabase Auth
-// (supabase/auth-email-templates/*.html) con los datos de
-// tienda/tienda.config.mjs y deja el resultado en
+// (supabase/auth-email-templates/*.html) con los datos de la PLATAFORMA
+// (plataforma/plataforma.config.mjs): Auth es uno solo para todas las
+// tiendas, así que confirmar la cuenta o cambiar la contraseña llega con la
+// marca de la plataforma. Deja el resultado en
 // supabase/auth-email-templates/generadas/, listo para pegar en
 // Supabase → Authentication → Emails.
 // ============================================================================
@@ -11,6 +13,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import tienda from '../tienda/tienda.config.mjs'
+import plataforma from '../plataforma/plataforma.config.mjs'
 import { resolverTema } from '../src/tienda/presets.mjs'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -22,17 +25,14 @@ const escapar = (s) =>
 
 // El logo del mail tiene que ser una URL absoluta: si en la config es una
 // ruta de tienda/public ("/logo.png"), se le antepone la URL del sitio.
+// La plataforma no tiene logo en imagen: el nombre va en el título del mail.
 function logoHtml() {
-  if (!tienda.logoUrl) return ''
-  const url = /^https?:\/\//.test(tienda.logoUrl)
-    ? tienda.logoUrl
-    : tienda.urlSitio.replace(/\/$/, '') + tienda.logoUrl
-  return `<img src="${escapar(url)}" alt="${escapar(tienda.nombre)}" style="max-height:48px;display:block;margin:0 auto 12px;" />`
+  return ''
 }
 
 const valores = {
-  '%TIENDA_NOMBRE%': escapar(tienda.nombre),
-  '%TIENDA_URL%': escapar(tienda.urlSitio),
+  '%TIENDA_NOMBRE%': escapar(plataforma.nombre),
+  '%TIENDA_URL%': escapar(plataforma.urlPublica),
   '%TIENDA_COLOR%': resolverTema(tienda.tema).colorPrimario,
   '%TIENDA_LOGO%': logoHtml(),
   '%ANIO%': String(new Date().getFullYear()),

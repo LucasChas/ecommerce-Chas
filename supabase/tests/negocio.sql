@@ -1,15 +1,18 @@
 -- ============================================================================
--- Pruebas de las reglas de negocio de la base (stock, variantes, envío,
--- permisos). Se corren sobre una base recién instalada:
+-- Pruebas de las reglas de negocio de la plataforma (aislamiento entre
+-- tiendas, alta, suscripción, stock, variantes, envío, permisos). Se corren
+-- sobre una base recién instalada:
 --
 --   psql ... -f supabase/tests/stub_supabase.sql
 --   psql ... -f supabase/instalar.sql      (sin la línea de pg_net)
 --   psql ... -v ON_ERROR_STOP=1 -f supabase/tests/negocio.sql
 --
 -- Cualquier regla rota corta con "FALLO: ...". Lo corre la CI.
+--
+-- Personajes: Ana (dueña de la tienda A), Beto (dueño de la tienda B),
+-- Carla (clienta) y Lucas (admin de la plataforma).
 -- ============================================================================
 
--- Helpers: afirmar igualdad y afirmar que algo falla.
 create or replace function pg_temp.igual(p_obtenido anyelement, p_esperado anyelement, p_que text)
 returns void language plpgsql as $$
 begin
@@ -27,108 +30,193 @@ exception when others then
   if sqlerrm like 'FALLO:%' then raise; end if;
 end $$;
 
-grant usage on schema public to anon, authenticated;
+-- Cambiar de usuario (simula el JWT de Supabase).
+create or replace function pg_temp.como(p_uid text)
+returns void language sql as $$
+  select set_config('request.jwt.claim.sub', p_uid, false);
+$$;
+
+-- Supabase le da estos permisos de tabla a los roles de la API.
+grant usage on schema public, storage to anon, authenticated;
 grant all on all tables in schema public to anon, authenticated;
+grant all on storage.objects to authenticated;
 
 insert into auth.users (id, email) values
-  ('11111111-1111-1111-1111-111111111111', 'duena@test.com'),
-  ('22222222-2222-2222-2222-222222222222', 'cliente@test.com');
-select pg_temp.igual(public.promover_admin('DUENA@test.com'), true, 'promover_admin encuentra la cuenta');
-select pg_temp.igual(public.promover_admin('nadie@test.com'), false, 'promover_admin sin cuenta');
+  ('aaaaaaaa-0000-0000-0000-00000000000a', 'ana@test.com'),
+  ('bbbbbbbb-0000-0000-0000-00000000000b', 'beto@test.com'),
+  ('cccccccc-0000-0000-0000-00000000000c', 'carla@test.com'),
+  ('dddddddd-0000-0000-0000-00000000000d', 'lucas@test.com');
+select pg_temp.igual(public.promover_admin('LUCAS@test.com'), true, 'promover_admin de plataforma');
 
-update public.configuracion set envio_costo = 1500, envio_gratis_desde = 50000 where id;
-insert into public.categorias (id, nombre) values ('aaaaaaaa-0000-0000-0000-000000000001', 'Ropa');
-insert into public.productos (id, nombre, categoria_id, precio, stock) values
-  ('bbbbbbbb-0000-0000-0000-000000000001', 'Remera', 'aaaaaaaa-0000-0000-0000-000000000001', 10000, 0),
-  ('bbbbbbbb-0000-0000-0000-000000000002', 'Gorro',  'aaaaaaaa-0000-0000-0000-000000000001', 5000, 4),
-  ('bbbbbbbb-0000-0000-0000-000000000003', 'Oculto', 'aaaaaaaa-0000-0000-0000-000000000001', 1000, 9);
+create temp table ids (clave text primary key, id uuid);
+grant all on ids to anon, authenticated;
+create or replace function pg_temp.id(p_clave text) returns uuid language sql as $$
+  select id from ids where clave = p_clave;
+$$;
+
+-- ---------------------------------------------------------------- Alta
+select pg_temp.como('');  -- anon no tiene usuario
+set role anon;
+select pg_temp.falla($$select public.crear_tienda('tienda-a','A','ropa','a@x.com','351')$$, 'anon crea tienda');
+reset role;
+
+set role authenticated;
+select pg_temp.como('aaaaaaaa-0000-0000-0000-00000000000a');
+select pg_temp.falla($$select public.crear_tienda('admin','A','ropa','a@x.com','351')$$, 'slug reservado');
+select pg_temp.falla($$select public.crear_tienda('A B','A','ropa','a@x.com','351')$$, 'slug inválido');
+select pg_temp.igual(public.slug_disponible('tienda-a'), true, 'slug libre');
+insert into ids values ('A', public.crear_tienda('tienda-a', 'Tienda A', 'ropa', 'ana@test.com', '+54 9 351 111-2222',
+  'Calle 1', 'Córdoba', '@tiendaa', 'oscuro', '#112233'));
+select pg_temp.igual(public.slug_disponible('tienda-a'), false, 'slug tomado');
+select pg_temp.falla($$select public.crear_tienda('tienda-a','Otra','ropa','a@x.com','351')$$, 'slug duplicado');
+reset role;
+
+select pg_temp.igual((select count(*)::int from public.categorias where tienda_id = pg_temp.id('A')), 4, 'categorías del rubro ropa');
+select pg_temp.igual((select whatsapp from public.configuracion where tienda_id = pg_temp.id('A')), '5493511112222', 'WhatsApp normalizado');
+select pg_temp.igual((select tema_preset from public.configuracion where tienda_id = pg_temp.id('A')), 'oscuro', 'preset elegido');
+select pg_temp.igual((select instagram from public.tiendas where slug = 'tienda-a'), 'tiendaa', 'instagram sin @');
+select pg_temp.igual((select rol from public.tienda_miembros where tienda_id = pg_temp.id('A')), 'duena', 'Ana es la dueña');
+
+set role authenticated;
+select pg_temp.como('bbbbbbbb-0000-0000-0000-00000000000b');
+insert into ids values ('B', public.crear_tienda('tienda-b', 'Tienda B', 'deco', 'beto@test.com', '3512223333'));
+reset role;
+
+-- --------------------------------------------------- Aislamiento entre tiendas
+set role authenticated;
+select pg_temp.como('aaaaaaaa-0000-0000-0000-00000000000a');
+select pg_temp.igual((select count(*)::int from public.tiendas), 1, 'Ana solo ve su tienda');
+-- RLS: el update sobre otra tienda no falla, afecta 0 filas (se verifica abajo).
+update public.configuracion set nombre_tienda = 'hackeada' where tienda_id = pg_temp.id('B');
+select pg_temp.falla(format($$insert into public.categorias (tienda_id, nombre) values (%L, 'x')$$, pg_temp.id('B')),
+  'Ana crea categoría en B');
+select pg_temp.falla($$update public.tiendas set prueba_hasta = now() + interval '10 years' where slug = 'tienda-a'$$,
+  'Ana se extiende la prueba');
+select pg_temp.falla($$update public.tiendas set suscripcion_estado = 'activa' where slug = 'tienda-a'$$,
+  'Ana se activa la suscripción');
+update public.tiendas set telefono = '3519998888' where slug = 'tienda-a';  -- sus datos sí
+select pg_temp.falla(format($$select public.guardar_token_mp(%L, 'APP_USR-123456789012345678901234')$$, pg_temp.id('B')),
+  'Ana carga token en B');
+select pg_temp.falla(format($$select public.guardar_token_mp(%L, 'cualquier-cosa')$$, pg_temp.id('A')),
+  'token con formato inválido');
+select public.guardar_token_mp(pg_temp.id('A'), 'TEST-1234567890-abcdefghijklmnopqrstuvwxyz');
+select pg_temp.igual((select count(*)::int from public.tienda_secretos), 0, 'el token no se puede leer desde la API');
+-- Storage: solo su carpeta.
+insert into storage.objects (bucket_id, name) values ('productos', pg_temp.id('A')::text || '/foto.jpg');
+select pg_temp.falla(format($$insert into storage.objects (bucket_id, name) values ('productos', %L)$$,
+  pg_temp.id('B')::text || '/foto.jpg'), 'Ana sube a la carpeta de B');
+select pg_temp.falla($$insert into storage.objects (bucket_id, name) values ('productos', 'suelto.jpg')$$,
+  'subir fuera de una carpeta de tienda');
+reset role;
+
+select pg_temp.igual((select nombre_tienda from public.configuracion where tienda_id = pg_temp.id('B')), 'Tienda B', 'config de B intacta');
+select pg_temp.igual((select telefono from public.tiendas where slug = 'tienda-a'), '3519998888', 'Ana edita sus datos');
+select pg_temp.igual((select mp_conectado from public.tiendas where slug = 'tienda-a'), true, 'MP conectado');
+select pg_temp.igual((select mp_access_token from public.tienda_secretos where tienda_id = pg_temp.id('A')),
+  'TEST-1234567890-abcdefghijklmnopqrstuvwxyz', 'token guardado');
+
+-- ------------------------------------------------------ Catálogo por tienda
+insert into public.productos (id, tienda_id, nombre, categoria_id, precio, stock) values
+  ('10000000-0000-0000-0000-000000000001', pg_temp.id('A'), 'Remera',
+   (select id from public.categorias where tienda_id = pg_temp.id('A') and nombre = 'Remeras'), 10000, 0),
+  ('10000000-0000-0000-0000-000000000002', pg_temp.id('A'), 'Gorro', null, 5000, 4),
+  ('10000000-0000-0000-0000-000000000003', pg_temp.id('A'), 'Oculto', null, 1000, 9),
+  ('20000000-0000-0000-0000-000000000001', pg_temp.id('B'), 'Gorro', null, 7000, 5);
 update public.productos set activo = false where nombre = 'Oculto';
 insert into public.producto_variantes (id, producto_id, nombre, stock) values
-  ('cccccccc-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'S', 2),
-  ('cccccccc-0000-0000-0000-000000000002', 'bbbbbbbb-0000-0000-0000-000000000001', 'M', 3);
+  ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'S', 2),
+  ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'M', 3);
 
--- Variantes: el stock del producto es la suma y no se edita directo.
-select pg_temp.igual((select stock from public.productos where nombre = 'Remera'), 5, 'stock = suma de variantes');
-select pg_temp.falla($$update public.productos set stock = 99 where nombre = 'Remera'$$, 'editar stock de producto con variantes');
+select pg_temp.igual((select count(*)::int from public.productos where slug = 'gorro'), 2, 'mismo slug en dos tiendas');
+select pg_temp.falla(format($$insert into public.productos (tienda_id, nombre, categoria_id) values (%L, 'x', %L)$$,
+  pg_temp.id('B'), (select id from public.categorias where tienda_id = pg_temp.id('A') limit 1)),
+  'categoría de otra tienda');
+select pg_temp.igual((select stock from public.productos where id = '10000000-0000-0000-0000-000000000001'), 5, 'stock = suma de variantes');
+select pg_temp.falla($$update public.productos set stock = 99 where id = '10000000-0000-0000-0000-000000000001'$$, 'stock directo con variantes');
 
--- Cliente logueado.
-set role authenticated;
-select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
-
--- RLS: el update de un cliente no falla, afecta 0 filas.
-update public.configuracion set nombre_tienda = 'hackeada' where id;
+select pg_temp.como('');  -- anon no tiene usuario
+set role anon;
+select pg_temp.igual((select count(*)::int from public.productos), 3, 'anon ve los activos de tiendas habilitadas');
+select pg_temp.igual((select habilitada from public.tienda_publica('tienda-a')), true, 'tienda_publica');
 reset role;
-select pg_temp.igual((select nombre_tienda from public.configuracion), null::text, 'cliente no edita la configuración');
-set role authenticated;
 
-select pg_temp.falla($$select public.promover_admin('cliente@test.com')$$, 'cliente se autopromueve');
-select pg_temp.igual((select count(*)::int from public.productos where nombre = 'Oculto'), 0, 'cliente no ve ocultos');
-select pg_temp.falla(
-  $$select public.crear_pedido('A','351','','coordinar','','','','','[{"id":"bbbbbbbb-0000-0000-0000-000000000001","cantidad":1}]', 0)$$,
-  'producto con variantes sin elegir opción');
-select pg_temp.falla(
-  $$select public.crear_pedido('A','351','','coordinar','','','','','[{"id":"bbbbbbbb-0000-0000-0000-000000000001","variante_id":"cccccccc-0000-0000-0000-000000000001","cantidad":3}]', 0)$$,
-  'más unidades que el stock de la variante');
-select pg_temp.falla(
-  $$select public.crear_pedido('A','351','','coordinar','','','','','[{"id":"bbbbbbbb-0000-0000-0000-000000000003","cantidad":1}]', 0)$$,
+set role authenticated;
+select pg_temp.como('bbbbbbbb-0000-0000-0000-00000000000b');
+select pg_temp.igual((select count(*)::int from public.productos where tienda_id = pg_temp.id('A') and not activo), 0,
+  'Beto no ve los ocultos de A');
+select pg_temp.falla(format($$select public.ordenar_productos(%L, array['10000000-0000-0000-0000-000000000002']::uuid[])$$,
+  pg_temp.id('A')), 'Beto ordena A');
+update public.producto_variantes set stock = 50 where id = '30000000-0000-0000-0000-000000000001';
+reset role;
+select pg_temp.igual((select stock from public.producto_variantes where id = '30000000-0000-0000-0000-000000000001'), 2,
+  'Beto no toca variantes de A');
+
+-- --------------------------------------------------------------- Pedidos
+update public.configuracion set envio_costo = 1500, envio_gratis_desde = 50000 where tienda_id = pg_temp.id('A');
+
+set role authenticated;
+select pg_temp.como('cccccccc-0000-0000-0000-00000000000c');
+select pg_temp.falla(format($$select public.crear_pedido('C','351','','coordinar','','','','',
+  '[{"id":"20000000-0000-0000-0000-000000000001","cantidad":1}]', 0, 'checkout', 'coordinar', %L)$$, pg_temp.id('A')),
+  'producto de B en un pedido de A');
+select pg_temp.falla(format($$select public.crear_pedido('C','351','','coordinar','','','','',
+  '[{"id":"10000000-0000-0000-0000-000000000001","cantidad":1}]', 0, 'checkout', 'coordinar', %L)$$, pg_temp.id('A')),
+  'variante sin elegir');
+select pg_temp.falla(format($$select public.crear_pedido('C','351','','coordinar','','','','',
+  '[{"id":"10000000-0000-0000-0000-000000000003","cantidad":1}]', 0, 'checkout', 'coordinar', %L)$$, pg_temp.id('A')),
   'producto oculto');
-
--- Pedido válido: S x2 + Gorro x1 con envío; intenta origen admin (no puede).
-select pg_temp.igual(public.crear_pedido('A','351','a@x.com','envio','C 1','Cba','5000','',
-  '[{"id":"bbbbbbbb-0000-0000-0000-000000000001","variante_id":"cccccccc-0000-0000-0000-000000000001","cantidad":2},
-    {"id":"bbbbbbbb-0000-0000-0000-000000000002","cantidad":1}]', 1, 'admin', 'mercadopago'), 1::bigint, 'pedido 1 creado');
+select pg_temp.falla($$select public.crear_pedido('C','351','','coordinar','','','','',
+  '[{"id":"10000000-0000-0000-0000-000000000002","cantidad":1}]', 0)$$, 'pedido sin tienda');
+select public.crear_pedido('C','351','c@x.com','envio','C 1','Cba','5000','',
+  '[{"id":"10000000-0000-0000-0000-000000000001","variante_id":"30000000-0000-0000-0000-000000000001","cantidad":2},
+    {"id":"10000000-0000-0000-0000-000000000002","cantidad":1}]', 1, 'admin', 'mercadopago', pg_temp.id('A')) as numero_p1 \gset
 reset role;
+insert into ids select 'P1', id from public.pedidos where numero = :numero_p1;
 
-select pg_temp.igual((select subtotal from public.pedidos where numero = 1), 25000.00::numeric, 'subtotal con precios de la base');
-select pg_temp.igual((select envio from public.pedidos where numero = 1), 1500.00::numeric, 'costo de envío');
-select pg_temp.igual((select total from public.pedidos where numero = 1), 26500.00::numeric, 'total = subtotal + envío');
-select pg_temp.igual((select origen from public.pedidos where numero = 1), 'checkout', 'origen admin reservado al admin');
-select pg_temp.igual((select metodo_pago from public.pedidos where numero = 1), 'mercadopago', 'método de pago');
-select pg_temp.igual((select items->0->>'nombre' from public.pedidos where numero = 1), 'Remera — S', 'nombre con variante');
+select pg_temp.igual((select subtotal from public.pedidos where id = pg_temp.id('P1')), 25000.00::numeric, 'subtotal de la base');
+select pg_temp.igual((select envio from public.pedidos where id = pg_temp.id('P1')), 1500.00::numeric, 'envío de la config de A');
+select pg_temp.igual((select total from public.pedidos where id = pg_temp.id('P1')), 26500.00::numeric, 'total');
+select pg_temp.igual((select origen from public.pedidos where id = pg_temp.id('P1')), 'checkout', 'origen admin reservado');
+select pg_temp.igual((select tienda_id from public.pedidos where id = pg_temp.id('P1')), pg_temp.id('A'), 'pedido de A');
 select pg_temp.igual((select stock from public.producto_variantes where nombre = 'S'), 0, 'descuenta la variante');
-select pg_temp.igual((select stock from public.productos where nombre = 'Remera'), 3, 'producto = suma tras la venta');
-select pg_temp.igual((select stock from public.productos where nombre = 'Gorro'), 3, 'descuenta producto sin variantes');
+select pg_temp.igual((select stock from public.productos where id = '10000000-0000-0000-0000-000000000002'), 3, 'descuenta el producto');
 
--- Envío gratis desde 50000.
 set role authenticated;
-select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
-select public.crear_pedido('A','351','','envio','C','C','1','',
-  '[{"id":"bbbbbbbb-0000-0000-0000-000000000001","variante_id":"cccccccc-0000-0000-0000-000000000002","cantidad":3},
-    {"id":"bbbbbbbb-0000-0000-0000-000000000002","cantidad":3}]', 0);
+select pg_temp.como('bbbbbbbb-0000-0000-0000-00000000000b');
+select pg_temp.igual((select count(*)::int from public.pedidos), 0, 'Beto no ve pedidos de A');
+select pg_temp.como('aaaaaaaa-0000-0000-0000-00000000000a');
+select pg_temp.igual((select count(*)::int from public.pedidos), 1, 'Ana ve su pedido');
+update public.pedidos set estado = 'cancelado' where id = pg_temp.id('P1');
 reset role;
-select pg_temp.igual((select envio from public.pedidos where numero = 2), 1500.00::numeric, 'envío cobrado bajo el mínimo (45000)');
-update public.configuracion set envio_gratis_desde = 40000 where id;
-set role authenticated;
-select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
--- La admin puede vender el oculto a mano.
-select public.crear_pedido('B','351','','envio','C','C','1','',
-  '[{"id":"bbbbbbbb-0000-0000-0000-000000000003","cantidad":1}]', 0, 'admin');
-reset role;
-select pg_temp.igual((select origen from public.pedidos where numero = 3), 'admin', 'carga manual de la admin');
-select pg_temp.igual((select envio from public.pedidos where numero = 3), 1500.00::numeric, 'bajo el mínimo nuevo');
-
--- Cancelar devuelve stock a la variante y al producto.
-update public.pedidos set estado = 'cancelado' where numero = 1;
 select pg_temp.igual((select stock from public.producto_variantes where nombre = 'S'), 2, 'cancelar devuelve a la variante');
-select pg_temp.igual((select stock from public.productos where nombre = 'Gorro'), 1, 'cancelar devuelve al producto');
+select pg_temp.igual((select stock from public.productos where id = '10000000-0000-0000-0000-000000000002'), 4, 'cancelar devuelve al producto');
 
--- Reactivar sin stock suficiente falla.
-update public.pedidos set estado = 'cancelado' where numero = 2;
-update public.producto_variantes set stock = 0 where nombre = 'M';
-select pg_temp.falla($$update public.pedidos set estado = 'nuevo' where numero = 2$$, 'reactivar sin stock');
-
--- Borrar la última variante deja el producto en 0 y editable a mano.
-delete from public.producto_variantes where producto_id = 'bbbbbbbb-0000-0000-0000-000000000001';
-select pg_temp.igual((select stock from public.productos where nombre = 'Remera'), 0, 'sin variantes → 0');
-update public.productos set stock = 7 where nombre = 'Remera';
-
--- Orden manual (solo admin).
-set role authenticated;
-select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', false);
-select pg_temp.falla($$select public.ordenar_productos(array['bbbbbbbb-0000-0000-0000-000000000002']::uuid[])$$, 'cliente ordena');
-select set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', false);
-select public.ordenar_productos(array['bbbbbbbb-0000-0000-0000-000000000002', 'bbbbbbbb-0000-0000-0000-000000000001']::uuid[]);
+-- ------------------------------------------------- Prueba vencida y suscripción
+update public.tiendas set prueba_hasta = now() - interval '1 day' where slug = 'tienda-b';
+select pg_temp.como('');  -- anon no tiene usuario
+set role anon;
+select pg_temp.igual((select habilitada from public.tienda_publica('tienda-b')), false, 'B pausada al vencer la prueba');
+select pg_temp.igual((select count(*)::int from public.productos where tienda_id = pg_temp.id('B')), 0, 'B pausada no muestra productos');
 reset role;
-select pg_temp.igual((select orden from public.productos where nombre = 'Gorro'), 1, 'orden manual');
+set role authenticated;
+select pg_temp.como('cccccccc-0000-0000-0000-00000000000c');
+select pg_temp.falla(format($$select public.crear_pedido('C','351','','coordinar','','','','',
+  '[{"id":"20000000-0000-0000-0000-000000000001","cantidad":1}]', 0, 'checkout', 'coordinar', %L)$$, pg_temp.id('B')),
+  'comprar en tienda pausada');
+select pg_temp.como('bbbbbbbb-0000-0000-0000-00000000000b');
+select pg_temp.igual((select count(*)::int from public.productos where tienda_id = pg_temp.id('B')), 1, 'Beto sigue viendo su catálogo pausado');
+reset role;
+update public.tiendas set suscripcion_estado = 'activa' where slug = 'tienda-b';  -- lo hace el webhook
+select pg_temp.igual(public.tienda_habilitada(pg_temp.id('B')), true, 'suscripción activa reabre la tienda');
+update public.tiendas set suspendida = true where slug = 'tienda-b';
+select pg_temp.igual(public.tienda_habilitada(pg_temp.id('B')), false, 'suspensión manual');
 
-\echo '✓ Reglas de negocio OK'
+-- ----------------------------------------------------- Admin de plataforma
+set role authenticated;
+select pg_temp.como('dddddddd-0000-0000-0000-00000000000d');
+select pg_temp.igual((select count(*)::int from public.tiendas), 2, 'Lucas ve todas las tiendas');
+update public.tiendas set suspendida = false where slug = 'tienda-b';
+reset role;
+select pg_temp.igual((select suspendida from public.tiendas where slug = 'tienda-b'), false, 'Lucas reactiva una tienda');
+
+\echo '✓ Reglas de negocio de la plataforma OK'

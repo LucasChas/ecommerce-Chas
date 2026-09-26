@@ -5,8 +5,17 @@ para usarse desde el celular.
 
 ## Entrar
 
-Abrí la dirección del panel que te pasaron e ingresá con tu email y tu
-contraseña. Para salir, tocá el círculo con tu inicial (arriba a la derecha).
+Entrá a la plataforma → **Ingresar** con tu mail administrativo, y en **Mis
+tiendas** tocá **Administrar**. También podés ir directo a
+`/t/<tu-tienda>/admin`. Para salir, tocá el círculo con tu inicial.
+
+## Tu suscripción
+
+- Arriba del panel ves cuántos días de prueba gratis te quedan. Tocá
+  **Activar** para suscribirte con MercadoPago (débito mensual automático).
+- Si la prueba vence sin suscripción, tu tienda se **pausa**: tus clientes ven
+  un aviso, pero no se borra nada. Al activar la suscripción vuelve tal cual.
+- La suscripción se cancela desde tu cuenta de MercadoPago.
 
 ## Productos
 
@@ -52,5 +61,11 @@ contraseña. Para salir, tocá el círculo con tu inicial (arriba a la derecha).
   y dirección del sitio.
 - **Envío a domicilio:** costo fijo y, opcional, un monto desde el cual es
   gratis. Vacío = el envío se coordina aparte.
+- **Cobros con MercadoPago:** pegá el Access Token de producción de tu cuenta
+  (MercadoPago → Tus integraciones → tu aplicación → Credenciales de
+  producción). Desde ese momento tus clientes pueden pagar online y la plata
+  va directo a tu cuenta. Se puede cambiar o desconectar cuando quieras.
+- **Datos de la cuenta:** tu mail administrativo, teléfono y dirección (no son
+  públicos).
 
 Tocá **Guardar cambios**: se ven en la tienda enseguida.

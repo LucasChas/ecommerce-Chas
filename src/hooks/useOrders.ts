@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import type { EstadoPedido, Pedido } from '../types'
+import { tienda } from '../tienda'
 
 // Cuántos pedidos trae cada "página". El panel arranca con estos y suma más con
 // el botón "Ver más" (paginar es más cómodo en el celular que un scroll infinito).
@@ -55,6 +56,7 @@ export function useOrders(estado: FiltroEstado = 'todos', busqueda = '') {
     let query = supabase
       .from('pedidos')
       .select('*')
+      .eq('tienda_id', tienda().id)
       .order('created_at', { ascending: false })
       .range(0, paginas * POR_PAGINA - 1)
 
@@ -89,7 +91,11 @@ export function useOrders(estado: FiltroEstado = 'todos', busqueda = '') {
   // Conteos por estado: pedimos solo el total (head: true no trae filas).
   const fetchConteos = useCallback(async () => {
     const activos = () =>
-      supabase.from('pedidos').select('*', { count: 'exact', head: true }).is('eliminado_at', null)
+      supabase
+        .from('pedidos')
+        .select('*', { count: 'exact', head: true })
+        .eq('tienda_id', tienda().id)
+        .is('eliminado_at', null)
 
     const consultas = [
       activos(),
@@ -97,6 +103,7 @@ export function useOrders(estado: FiltroEstado = 'todos', busqueda = '') {
       supabase
         .from('pedidos')
         .select('*', { count: 'exact', head: true })
+        .eq('tienda_id', tienda().id)
         .not('eliminado_at', 'is', null),
     ]
     const [todos, ...resto] = await Promise.all(consultas)

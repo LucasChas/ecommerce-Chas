@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { useDialog } from '../../context/DialogContext'
 import ProductCard from './ProductCard'
 import { t } from '../../i18n/textos'
+import { tienda } from '../../tienda'
 
 interface Props {
   productos: ProductoConCategoria[]
@@ -39,7 +40,7 @@ export default function ProductList({ productos, onEditar, onChanged, ordenable 
     const desde = productos.findIndex((p) => p.id === active.id)
     const hasta = productos.findIndex((p) => p.id === over.id)
     const ids = arrayMove(productos, desde, hasta).map((p) => p.id)
-    const { error } = await supabase.rpc('ordenar_productos', { p_ids: ids })
+    const { error } = await supabase.rpc('ordenar_productos', { p_tienda: tienda().id, p_ids: ids })
     if (error) await avisar({ titulo: 'No se pudo cambiar el orden', mensaje: error.message })
     onChanged()
   }

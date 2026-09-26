@@ -53,7 +53,9 @@ const tienda = {
     carrito: true,
     cuentas: true,
     pedidosManuales: true,
-    mercadoPago: false, // requiere las Edge Functions de MP (docs/INSTALACION.md)
+    // Pago online: se ofrece en cada tienda que conectó su MercadoPago desde el
+    // panel. false = ninguna tienda de la plataforma cobra online.
+    mercadoPago: true,
   },
 
   // Envío a domicilio. También se edita desde el admin → "Mi tienda".

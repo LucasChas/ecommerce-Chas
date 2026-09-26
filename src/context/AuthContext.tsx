@@ -2,12 +2,17 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 import type { Perfil } from '../types'
+import { tienda } from '../tienda'
+import { urlTienda } from '../lib/contexto'
 
 interface AuthContextValue {
   session: Session | null
   perfil: Perfil | null
   loading: boolean
+  // ¿Administra la tienda que se está mirando? (miembro o admin de plataforma)
   esAdmin: boolean
+  // ¿Es admin de la plataforma? (ve y gestiona todas las tiendas)
+  esAdminPlataforma: boolean
   registrar: (datos: {
     email: string
     password: string
@@ -27,6 +32,8 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [perfil, setPerfil] = useState<Perfil | null>(null)
+  const [esAdmin, setEsAdmin] = useState(false)
+  const [esAdminPlataforma, setEsAdminPlataforma] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Trae el perfil (rol, nombre) del usuario logueado.
@@ -37,8 +44,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const cargarPerfil = useCallback(async (usuario: User | undefined) => {
     if (!usuario) {
       setPerfil(null)
+      setEsAdmin(false)
+      setEsAdminPlataforma(false)
       return
     }
+
+    // Permisos: admin de la plataforma, y miembro de la tienda actual (si se
+    // está mirando una). RLS deja leer las filas propias de ambas tablas.
+    const tiendaId = tienda().id
+    const [{ data: pa }, { data: miembro }] = await Promise.all([
+      supabase.from('plataforma_admins').select('user_id').eq('user_id', usuario.id).maybeSingle(),
+      tiendaId
+        ? supabase.from('tienda_miembros').select('rol').eq('tienda_id', tiendaId).eq('user_id', usuario.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
+    setEsAdminPlataforma(!!pa)
+    setEsAdmin(!!pa || !!miembro)
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -75,7 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: datos.email,
       password: datos.password,
       // Estos datos los toma el trigger handle_new_user para armar el perfil.
-      options: { data: { nombre: datos.nombre, telefono: datos.telefono } },
+      options: {
+        data: { nombre: datos.nombre, telefono: datos.telefono },
+        // El link del mail de confirmación vuelve a donde se registró
+        // (la tienda o el alta de la plataforma).
+        emailRedirectTo: window.location.href,
+      },
     })
     if (error) return { error: error.message, necesitaConfirmar: false, yaRegistrado: false }
 
@@ -105,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // así que la pantalla siempre debe mostrar el mismo aviso de éxito.
   const recuperarPassword: AuthContextValue['recuperarPassword'] = useCallback(async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/restablecer-contrasena`,
+      redirectTo: urlTienda('/restablecer-contrasena'),
     })
     return { error: error ? error.message : null }
   }, [])
@@ -125,7 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     perfil,
     loading,
-    esAdmin: perfil?.rol === 'admin',
+    esAdmin,
+    esAdminPlataforma,
     registrar,
     ingresar,
     recuperarPassword,

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useDialog } from '../../context/DialogContext'
-import { useTienda } from '../../tienda'
+import { tienda, useTienda } from '../../tienda'
 import type { ConfiguracionDB, Ornamento, PresetTema } from '../../tienda/tipos'
 import { PRESETS } from '../../tienda/presets.mjs'
+import type { MiTienda } from '../../hooks/useMiTienda'
 import { t } from '../../i18n/textos'
 
 const ORNAMENTOS: { valor: Ornamento; texto: string }[] = [
@@ -21,7 +22,7 @@ const LOGO_MAX_BYTES = 1024 * 1024
 // único para que ningún navegador muestre el logo viejo cacheado.
 async function subirLogo(file: File): Promise<string> {
   const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
-  const ruta = `marca/logo-${crypto.randomUUID()}.${ext}`
+  const ruta = `${tienda().id}/marca/logo-${crypto.randomUUID()}.${ext}`
   const { error } = await supabase.storage
     .from('productos')
     .upload(ruta, file, { cacheControl: '3600', upsert: false, contentType: file.type })
@@ -33,7 +34,13 @@ async function subirLogo(file: File): Promise<string> {
 // contacto. Se guarda en la tabla "configuracion" (migración 0014) y se ve en
 // el muestrario al recargar. Un campo vacío vuelve al valor de
 // tienda/tienda.config.mjs.
-export default function StoreSettings() {
+export default function StoreSettings({
+  miTienda,
+  onCuentaGuardada,
+}: {
+  miTienda: MiTienda | null
+  onCuentaGuardada: () => void
+}) {
   const { config, recargar } = useTienda()
   const { avisar } = useDialog()
 
@@ -115,7 +122,7 @@ export default function StoreSettings() {
     const { data, error: err } = await supabase
       .from('configuracion')
       .update(cambios)
-      .eq('id', true)
+      .eq('tienda_id', config.id)
       .select()
 
     setGuardando(false)
@@ -132,6 +139,7 @@ export default function StoreSettings() {
   }
 
   return (
+    <>
     <form className="store-settings" onSubmit={onSubmit}>
       <div className="list-head">
         <div>
@@ -287,8 +295,14 @@ export default function StoreSettings() {
         </button>
       </div>
     </form>
+
+    {/* Cobros y datos de la cuenta: se guardan aparte (van a otras tablas). */}
+    {miTienda && <CobrosMercadoPago miTienda={miTienda} onGuardado={onCuentaGuardada} />}
+    {miTienda && <DatosCuenta miTienda={miTienda} onGuardado={onCuentaGuardada} />}
+    </>
   )
 }
+
 
 function ColorField({
   label,
@@ -305,5 +319,138 @@ function ColorField({
       <span>{label}</span>
       <code>{value.toUpperCase()}</code>
     </label>
+  )
+}
+
+// Conexión de la cuenta de MercadoPago con la que COBRA la tienda (sus ventas
+// van directo a su cuenta). El token se guarda con guardar_token_mp() en una
+// tabla que el front nunca puede leer: acá solo se ve si está conectado.
+function CobrosMercadoPago({ miTienda, onGuardado }: { miTienda: MiTienda; onGuardado: () => void }) {
+  const { avisar } = useDialog()
+  const { recargar } = useTienda()
+  const [token, setToken] = useState('')
+  const [editando, setEditando] = useState(!miTienda.mp_conectado)
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function guardar(valor: string | null) {
+    setGuardando(true)
+    setError(null)
+    const { error } = await supabase.rpc('guardar_token_mp', { p_tienda: miTienda.id, p_token: valor })
+    setGuardando(false)
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setToken('')
+    setEditando(valor === null)
+    onGuardado()
+    await recargar() // la vitrina muestra (o no) "Pagar online"
+    avisar({ titulo: valor ? 'MercadoPago conectado' : 'MercadoPago desconectado' })
+  }
+
+  return (
+    <section className="settings-card cuenta-card">
+      <h2>Cobros con MercadoPago</h2>
+      {miTienda.mp_conectado && !editando ? (
+        <>
+          <p className="mp-ok">✓ Tu tienda cobra online con tu cuenta de MercadoPago.</p>
+          <div className="cuenta-acciones">
+            <button type="button" className="link-btn" onClick={() => setEditando(true)}>
+              Cambiar credencial
+            </button>
+            <button type="button" className="btn-danger-text" onClick={() => guardar(null)} disabled={guardando}>
+              Desconectar
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="field-hint">
+            Pegá el <strong>Access Token de producción</strong> de tu cuenta: en MercadoPago entrá a{' '}
+            <em>Tus integraciones → tu aplicación → Credenciales de producción</em>. Empieza con <code>APP_USR-</code>.
+            Queda guardado solo en el servidor: nadie lo puede volver a ver desde la web.
+          </p>
+          <div className="field">
+            <input
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value.trim())}
+              placeholder="APP_USR-..."
+              autoComplete="off"
+            />
+          </div>
+          {error && <p className="form-error">{error}</p>}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={guardando || token.length < 20}
+            onClick={() => guardar(token)}
+          >
+            {guardando ? 'Guardando…' : 'Conectar MercadoPago'}
+          </button>
+        </>
+      )}
+    </section>
+  )
+}
+
+// Datos de la cuenta (tabla "tiendas"): el mail administrativo y los datos de
+// contacto de la dueña. No son públicos: los usa la plataforma.
+function DatosCuenta({ miTienda, onGuardado }: { miTienda: MiTienda; onGuardado: () => void }) {
+  const { avisar } = useDialog()
+  const [email, setEmail] = useState(miTienda.email_admin)
+  const [telefono, setTelefono] = useState(miTienda.telefono ?? '')
+  const [direccion, setDireccion] = useState(miTienda.direccion ?? '')
+  const [localidad, setLocalidad] = useState(miTienda.localidad ?? '')
+  const [guardando, setGuardando] = useState(false)
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault()
+    setGuardando(true)
+    const { error } = await supabase
+      .from('tiendas')
+      .update({
+        email_admin: email.trim(),
+        telefono: telefono.trim() || null,
+        direccion: direccion.trim() || null,
+        localidad: localidad.trim() || null,
+      })
+      .eq('id', miTienda.id)
+    setGuardando(false)
+    if (error) {
+      avisar({ titulo: 'No se pudo guardar', mensaje: error.message })
+      return
+    }
+    onGuardado()
+    avisar({ titulo: 'Datos guardados' })
+  }
+
+  return (
+    <form className="settings-card cuenta-card" onSubmit={guardar}>
+      <h2>Datos de la cuenta</h2>
+      <p className="field-hint">Privados: los usamos para avisarte de tu suscripción y darte soporte.</p>
+      <div className="field">
+        <label>Mail administrativo</label>
+        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+      </div>
+      <div className="field">
+        <label>Teléfono</label>
+        <input type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+      </div>
+      <div className="row2">
+        <div className="field">
+          <label>Dirección</label>
+          <input type="text" value={direccion} onChange={(e) => setDireccion(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Localidad</label>
+          <input type="text" value={localidad} onChange={(e) => setLocalidad(e.target.value)} />
+        </div>
+      </div>
+      <button className="btn btn-ghost" disabled={guardando}>
+        {guardando ? 'Guardando…' : 'Guardar datos'}
+      </button>
+    </form>
   )
 }

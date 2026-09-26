@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import type { ProductoConCategoria } from '../types'
 import { SELECT_PRODUCTO, aplanarProducto } from '../lib/productos'
+import { tienda } from '../tienda'
 
 // Trae los productos con el nombre de su categoría resuelto y se mantiene
 // actualizado en tiempo real: cualquier alta/edición/baja de producto o
@@ -19,6 +20,7 @@ export function useProducts() {
     const { data, error } = await supabase
       .from('productos')
       .select(SELECT_PRODUCTO)
+      .eq('tienda_id', tienda().id)
       .order('orden', { ascending: true })
       .order('created_at', { ascending: false })
 
@@ -39,12 +41,12 @@ export function useProducts() {
       .channel('catalogo-productos')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'productos' },
+        { event: '*', schema: 'public', table: 'productos', filter: `tienda_id=eq.${tienda().id}` },
         fetchProductos,
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'categorias' },
+        { event: '*', schema: 'public', table: 'categorias', filter: `tienda_id=eq.${tienda().id}` },
         fetchProductos,
       )
       .on(

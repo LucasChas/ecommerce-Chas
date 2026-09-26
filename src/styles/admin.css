@@ -1327,3 +1327,79 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+/* ---------- Aviso de prueba / suscripción ---------- */
+.aviso-susc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--color-primario-suave);
+  font-size: 0.85rem;
+}
+.aviso-susc strong {
+  width: 100%;
+}
+.aviso-susc span {
+  flex: 1;
+  color: var(--color-texto-suave);
+}
+.aviso-susc.off {
+  background: var(--color-peligro-suave);
+}
+.aviso-susc.off strong {
+  color: var(--color-peligro);
+}
+.aviso-susc-btn {
+  border: none;
+  border-radius: 100px;
+  padding: 8px 16px;
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+  font-weight: 700;
+  cursor: pointer;
+}
+.aviso-susc-error {
+  width: 100%;
+  color: var(--color-peligro);
+}
+.topbar-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.topbar-link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-fondo) 75%, var(--color-primario));
+}
+
+/* ---------- Mi tienda: cobros y datos de la cuenta ---------- */
+.cuenta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cuenta-card .btn {
+  align-self: flex-start;
+  width: auto;
+  padding-inline: 20px;
+}
+.cuenta-acciones {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+.mp-ok {
+  margin: 0;
+  color: var(--color-exito);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.store-settings + .cuenta-card,
+.cuenta-card + .cuenta-card {
+  margin-top: 14px;
+}

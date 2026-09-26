@@ -1,8 +1,10 @@
 // ============================================================================
-// Rubros prearmados para `pnpm nueva-tienda`: cómo se llaman las variantes,
-// qué datos extra tiene cada producto, el placeholder de la descripción y el
-// seed de categorías iniciales (supabase/seeds/<rubro>.sql).
-// Para sumar un rubro: agregalo acá y creá su seed.
+// Rubros de las tiendas: cómo se llaman las variantes, qué datos extra tiene
+// cada producto y el placeholder de la descripción. La tienda guarda su rubro
+// al darse de alta (tiendas.rubro) y la vitrina y el panel usan esto.
+// Las categorías iniciales de cada rubro están en la base:
+// categorias_iniciales() (migración 0018).
+// Para sumar un rubro: agregalo acá y en categorias_iniciales().
 // ============================================================================
 
 export const RUBROS = {
@@ -29,6 +31,15 @@ export const RUBROS = {
       { clave: 'material', etiqueta: 'Material' },
     ],
     placeholderDescripcion: 'Estilo, terminación, usos...',
+  },
+  bebes: {
+    nombre: 'Bebés y niños',
+    etiquetaVariante: 'Talle',
+    atributos: [
+      { clave: 'material', etiqueta: 'Material' },
+      { clave: 'cuidados', etiqueta: 'Cuidados' },
+    ],
+    placeholderDescripcion: 'Talle, material, detalles...',
   },
   alimentos: {
     nombre: 'Alimentos',

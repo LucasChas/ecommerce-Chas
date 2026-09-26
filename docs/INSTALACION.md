@@ -1,154 +1,128 @@
-# Instalación de una tienda nueva
+# Puesta en marcha de la plataforma
 
-Tiempo estimado: menos de una hora. Necesitás una cuenta de
-[Supabase](https://supabase.com) y una de [Vercel](https://vercel.com) o
-[Netlify](https://netlify.com). Para cobrar online, además, una cuenta de
-[MercadoPago](https://www.mercadopago.com.ar/developers) del cliente.
+Esto se hace **una sola vez**: después, cada cliente crea su tienda solo desde
+la landing (`/crear`) y paga su suscripción con MercadoPago.
 
-> **Cuentas y planes:** conviene que el proyecto de Supabase quede a nombre
-> del cliente (vos como miembro). Revisá los límites vigentes de los planes
-> gratuitos: Supabase limita la cantidad de proyectos gratis y los pausa por
-> inactividad, y el plan Hobby de Vercel no admite uso comercial.
+Necesitás: un proyecto de [Supabase](https://supabase.com), una cuenta de
+[MercadoPago](https://www.mercadopago.com.ar/developers) **de la plataforma**
+(donde cobrás las suscripciones) y un hosting para el front
+([Vercel](https://vercel.com) o [Netlify](https://netlify.com)).
+
+> **Planes:** revisá los límites vigentes. Con muchas tiendas en una sola base
+> conviene el plan pago de Supabase (el gratis se pausa por inactividad), y el
+> plan Hobby de Vercel no admite uso comercial.
 
 ---
 
-## 1. Personalizar la tienda
+## 1. Tu marca y tu precio
+
+Editá `plataforma/plataforma.config.mjs`: nombre de la plataforma, eslogan,
+URL pública, precio mensual, días de prueba gratis, WhatsApp y mail de
+contacto (el WhatsApp es el del botón "¿Necesitás algo a medida?").
+
+La estética base de todas las tiendas (la de Pecora) está en
+`tienda/tienda.config.mjs`; cada tienda después elige tema, colores y logo.
+
+> Si cambiás los días de prueba, cambiá también el default de
+> `tiendas.prueba_hasta` en `supabase/migrations/0018_plataforma.sql`.
+
+## 2. Base de datos
+
+1. Creá el proyecto en Supabase y anotá **Project URL** y **anon key**
+   (Project Settings → API).
+2. **SQL Editor**: pegá `supabase/instalar.sql` y ejecutá. Crea todo: tiendas,
+   permisos por tienda, productos, pedidos, stock, envío, pagos.
+3. Creá **tu** usuario (Authentication → Users → Add user) y hacete admin de la
+   plataforma:
+   ```sql
+   select public.promover_admin('tu-email@ejemplo.com');
+   ```
+   Como admin ves todas las tiendas en `/panel` y podés suspenderlas.
+4. Tienda de ejemplo para la landing: pegá `supabase/demo.sql` (crea `/t/demo`).
+   Después entrá a `/t/demo/admin` y subile fotos.
+5. **Authentication → Providers → Email:** **Enable sign up** activado (se
+   registran dueñas y clientes). *Confirm email* a elección: si está activo,
+   el link del mail devuelve a la persona a donde se registró.
+6. **Authentication → URL Configuration:** Site URL = la URL de la plataforma,
+   y en Redirect URLs agregá `https://tu-plataforma.com/**`.
+7. **Authentication → Emails:** `pnpm emails` genera las plantillas con la
+   marca de la plataforma en `supabase/auth-email-templates/generadas/`.
+
+Alternativa por consola (con la connection string de Project Settings →
+Database en `SUPABASE_DB_URL`): `pnpm db:instalar` y `pnpm db:demo`.
+
+## 3. Cobros de la plataforma (suscripciones)
+
+1. En MercadoPago, con la cuenta de la plataforma → **Tus integraciones** →
+   creá una aplicación y copiá el **Access Token de producción**.
+2. En **Webhooks** de esa aplicación, URL:
+   `https://<ref>.supabase.co/functions/v1/webhook-suscripciones`, evento
+   **Planes y suscripciones**. Copiá la clave secreta.
+3. Funciones y secretos (Supabase CLI):
+   ```bash
+   supabase login
+   supabase link --project-ref <ref>
+   supabase secrets set \
+     MP_PLATAFORMA_TOKEN=APP_USR-... \
+     MP_PLATAFORMA_WEBHOOK_SECRET=... \
+     PLATAFORMA_PRECIO=15000 PLATAFORMA_MONEDA=ARS \
+     PLATAFORMA_NOMBRE="Tiendas Chas" PLATAFORMA_URL=https://tu-plataforma.com
+   pnpm fn:deploy
+   ```
+   `PLATAFORMA_PRECIO` es lo que se cobra de verdad (la landing muestra el de
+   `plataforma.config.mjs`: mantenelos iguales).
+
+Cómo funciona: la dueña toca **Activar suscripción** (al final del alta, en
+`/panel` o en el aviso de su panel) → MercadoPago → autoriza el débito
+mensual. El webhook consulta la suscripción en la API de MP y marca la tienda
+como activa. Si vence la prueba sin suscripción, o la suscripción se pausa o
+cancela, la vitrina se pausa sola (los datos no se borran) y vuelve al
+reactivarla.
+
+## 4. Cobros de cada tienda
+
+No hay nada que configurar de tu lado: cada dueña conecta **su** cuenta de
+MercadoPago desde su panel → **Mi tienda → Cobros con MercadoPago** (pega su
+Access Token). Sus ventas van directo a su cuenta. El token queda en una tabla
+que solo leen las funciones del servidor. Sin MercadoPago conectado, su
+checkout ofrece solo "coordinar el pago por WhatsApp".
+
+El mail de recibo de compra (`enviar-recibo-pedido`) es opcional; su
+configuración está en [`supabase/functions/README.md`](../supabase/functions/README.md).
+
+## 5. Deploy del front
+
+Un solo deploy: build `pnpm run build`, output `dist`, variables
+`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`. Los rewrites de SPA ya están
+en `vercel.json`, `netlify.toml` y `tienda/public/_redirects`.
+
+| Ruta | Qué es |
+|---|---|
+| `/` | Landing |
+| `/crear` | Alta de una tienda |
+| `/ingresar`, `/panel` | Login y "Mis tiendas" de las dueñas (y tu vista de admin) |
+| `/t/<slug>` | Vitrina de cada tienda |
+| `/t/<slug>/admin` | Panel de cada tienda |
+
+**Dominio propio para un cliente** (opcional, ej. un plan superior): un deploy
+aparte del mismo repo con `VITE_TIENDA_SLUG=<slug>` sirve esa tienda en la raíz
+de su dominio.
+
+## 6. Probar en local
 
 ```bash
 pnpm install
-pnpm nueva-tienda
-```
-
-El asistente pregunta nombre, eslogan, URL, WhatsApp, Instagram, email,
-**rubro** (genérico, ropa, deco, alimentos), **tema** (cálido, minimal,
-oscuro, vibrante), colores, **trato** (vos / tú), moneda, locale y si vende
-online (carrito) o es solo muestrario. Completa `tienda/tienda.config.mjs`,
-copia las categorías del rubro a `supabase/seed.sql`, arma
-`supabase/instalar.sql` y genera los mails de Auth.
-
-Después, a mano si hace falta (todo en `tienda/tienda.config.mjs`):
-
-| Qué | Dónde |
-|---|---|
-| Logo y favicon | Archivos en `tienda/public/` y `logoUrl: '/logo.png'`. Reemplazá `tienda/public/favicon.svg`. El logo también se sube desde el panel → **Mi tienda**. |
-| Pago online | `features.mercadoPago: true` + paso 3. |
-| Envío | `envio.costo` / `envio.gratisDesde` (o desde **Mi tienda**). `null` = a coordinar. |
-| Variantes y datos del rubro | `catalogo.etiquetaVariante` (Talle, Color…) y `catalogo.atributos` (Material, Medidas…). |
-| Tipografías y adorno | `tema.fuenteTitulos` / `tema.fuenteTexto` (Google Fonts) y `tema.ornamento` (`festón`, `onda`, `línea`, `ninguno`). |
-| Textos | `textos` (mensajes de WhatsApp, éxito del pedido) e `idioma.textos` para pisar cualquier texto de `src/i18n/textos.ts` (por ejemplo los nombres de los estados). |
-| Estilos puntuales | `tienda/tema.css`. |
-| Legales | `/terminos` y `/privacidad` usan nombre, URL y email. Son un modelo: el cliente los revisa con su asesor legal. |
-
-## 2. Base de datos (Supabase)
-
-1. Creá un proyecto nuevo y anotá, en **Project Settings → API**, la
-   **Project URL** y la **anon public key**.
-2. Instalá el esquema, de una de estas dos formas:
-   - **SQL Editor → New query**: pegá todo `supabase/instalar.sql` y ejecutá;
-     después pegá `supabase/seed.sql` (categorías iniciales).
-   - O por consola, con la connection string de **Project Settings →
-     Database** en `SUPABASE_DB_URL`:
-     ```bash
-     export SUPABASE_DB_URL="postgresql://postgres:...@db.xxxx.supabase.co:5432/postgres"
-     pnpm db:instalar && pnpm db:seed
-     ```
-3. **Authentication → Users → Add user**: creá la cuenta de la dueña (email +
-   contraseña, "Auto Confirm"). Después, en el SQL Editor:
-
-   ```sql
-   select public.promover_admin('email-de-la-duena@ejemplo.com');
-   ```
-
-   Devuelve `true` si encontró la cuenta.
-4. **Authentication → Providers → Email:**
-   - Con `features.carrito = true`, dejá **Enable Sign up** activado (los
-     clientes se registran para comprar).
-   - En modo muestrario podés desactivarlo.
-5. **Authentication → Emails → Templates:** pegá los HTML de
-   `supabase/auth-email-templates/generadas/` en "Confirm signup" y "Reset
-   Password" (y "Password Changed" en Notifications, si lo activás).
-6. **Authentication → URL Configuration:** Site URL = la URL pública de la
-   tienda; agregala también en Redirect URLs.
-
-## 3. Edge Functions (mail de recibo y MercadoPago)
-
-Con la [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
-
-```bash
-supabase login
-supabase init            # solo si no existe supabase/config.toml (no toca las migraciones)
-supabase link --project-ref <ref-del-proyecto>
-pnpm fn:deploy           # despliega las tres funciones con los flags correctos
-```
-
-### Mail de recibo (opcional)
-
-`enviar-recibo-pedido` manda el comprobante al crear un pedido. El paso a
-paso (Gmail OAuth, secretos y Vault) está en
-[`supabase/functions/README.md`](../supabase/functions/README.md).
-
-### MercadoPago (opcional)
-
-1. En MercadoPago → **Tus integraciones**, creá una aplicación (Checkout Pro)
-   y copiá el **Access Token** (el de prueba empieza con `TEST-`).
-2. En **Webhooks**, configurá la URL
-   `https://<ref>.supabase.co/functions/v1/webhook-mercadopago`, evento
-   **Pagos**, y copiá la **clave secreta**.
-3. Cargá los secretos:
-   ```bash
-   supabase secrets set MP_ACCESS_TOKEN=TEST-... MP_WEBHOOK_SECRET=... \
-     STORE_URL=https://mi-tienda.com STORE_CURRENCY=ARS MP_SANDBOX=true
-   ```
-   (`MP_SANDBOX=true` solo mientras probás con credenciales de prueba.)
-4. En `tienda.config.mjs`: `features.mercadoPago: true`.
-
-Cómo funciona: el checkout crea el pedido (con el stock reservado) y pide el
-link de pago a `crear-preferencia-mp`, que arma la preferencia con los precios
-**de la base**. MercadoPago avisa a `webhook-mercadopago`, que valida la
-firma, consulta el pago en la API de MP y recién ahí marca el pedido como
-pagado. Si el pago se rechaza, el pedido queda reservado y el cliente puede
-reintentar desde "Mis pedidos"; si no vuelve, la dueña lo cancela desde el
-panel y el stock se devuelve solo.
-
-## 4. Probar en local
-
-```bash
 cp .env.example .env     # completá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
 pnpm dev
 ```
 
-- Tienda: <http://localhost:5173/>
-- Panel: <http://localhost:5173/admin>
+Abrí <http://localhost:5173/>, creá una tienda desde "Crear tienda" y entrá a
+su panel. Las suscripciones y los cobros online necesitan las funciones
+desplegadas (paso 3).
 
-## 5. Deploy: dos URLs (tienda pública + panel privado)
+## Migrar Pecora a la plataforma
 
-`VITE_APP_MODE` define qué expone cada deploy, así se crean **dos proyectos
-desde el mismo repo**:
-
-| Proyecto | `VITE_APP_MODE` | Qué muestra |
-|---|---|---|
-| Tienda (pública) | `catalog` | Catálogo, carrito, cuentas. `/admin` no existe. |
-| Panel (privado) | `admin` | Solo el panel, en la raíz `/` |
-
-En los dos: `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, build
-`pnpm run build`, output `dist`. Los rewrites de SPA ya están en `vercel.json`,
-`netlify.toml` y `tienda/public/_redirects`.
-
-> La privacidad real del panel la dan el login y RLS: aunque alguien encuentre
-> la URL, sin una cuenta con rol admin no puede hacer nada.
-
-## 6. Entregar
-
-- Pasale a la dueña la URL del panel, su usuario y el
-  [manual del panel](MANUAL_ADMIN.md).
-- Mostrale la pestaña **Mi tienda**: desde ahí cambia nombre, logo, tema,
-  colores, contacto y envío sin depender de vos.
-
-## Actualizar una tienda existente
-
-1. Traé los cambios del núcleo (`git merge upstream/main` si la tienda vive en
-   su propio repo; ver [`PLAN_MAQUETA.md`](PLAN_MAQUETA.md) §7).
-2. Leé el [`CHANGELOG.md`](../CHANGELOG.md): dice qué migraciones nuevas hay.
-3. Corré solo esas migraciones (`supabase/migrations/00NN_*.sql`, en orden) en
-   el SQL Editor, o con `pnpm db:push` si la tienda usa la CLI.
-4. `pnpm fn:deploy` si cambiaron las funciones, y redeploy del front.
+La migración 0018 convierte una instalación de una sola tienda (0001-0017 con
+datos) en la primera tienda de la plataforma: sus productos, pedidos y
+configuración quedan en una tienda con suscripción activa, y sus admins pasan a
+ser dueños de esa tienda y admins de la plataforma. Hacé un backup antes.

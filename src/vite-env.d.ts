@@ -4,8 +4,8 @@
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string
   readonly VITE_SUPABASE_ANON_KEY: string
-  // 'catalog' | 'admin' | undefined. Define qué vista expone el deploy.
-  readonly VITE_APP_MODE?: 'catalog' | 'admin'
+  // Deploy dedicado a una tienda (dominio propio). Ver lib/contexto.ts.
+  readonly VITE_TIENDA_SLUG?: string
 }
 
 interface ImportMeta {

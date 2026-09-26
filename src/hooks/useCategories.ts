@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import type { Categoria } from '../types'
+import { tienda } from '../tienda'
 
 // Trae las categorías (ordenadas alfabéticamente) y se mantiene actualizado
 // en tiempo real. Se usa tanto en el catálogo (chips de filtro) como en el
@@ -14,6 +15,7 @@ export function useCategories() {
     const { data, error } = await supabase
       .from('categorias')
       .select('*')
+      .eq('tienda_id', tienda().id)
       .order('nombre', { ascending: true })
 
     if (error) setError(error.message)

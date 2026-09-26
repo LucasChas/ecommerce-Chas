@@ -6,7 +6,22 @@
 
 ---
 
-## Estado de implementación
+## Actualización: modelo plataforma (v2.0)
+
+El producto pasó a ser una **plataforma por suscripción** (la opción B del
+§2): los clientes se dan de alta solos desde la landing, eligen su marca y
+pagan una suscripción mensual con MercadoPago. Está implementado en la
+migración 0018 y en `src/plataforma/` (ver `CHANGELOG.md` 2.0.0 y
+`docs/INSTALACION.md`). El modelo de una instalación por cliente sigue
+disponible como "dominio propio" (`VITE_TIENDA_SLUG`).
+
+Próximos pasos sugeridos: facturación (comprobantes de la suscripción),
+dominios propios gestionados desde el panel, invitar empleados a una tienda
+(`tienda_miembros` ya lo soporta), numeración de pedidos por tienda, conexión
+de MercadoPago por OAuth en lugar de pegar el token, y cancelación automática
+de pedidos con pago abandonado.
+
+## Estado de implementación (v1)
 
 | Fase | Estado |
 |---|---|

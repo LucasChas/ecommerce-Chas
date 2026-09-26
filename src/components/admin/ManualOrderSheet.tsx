@@ -3,6 +3,7 @@ import type { ProductoConCategoria } from '../../types'
 import { supabase } from '../../lib/supabaseClient'
 import { money } from '../../lib/format'
 import { SELECT_PRODUCTO, aplanarProducto } from '../../lib/productos'
+import { tienda } from '../../tienda'
 
 interface Props {
   open: boolean
@@ -51,6 +52,7 @@ export default function ManualOrderSheet({ open, onClose, onChanged }: Props) {
     supabase
       .from('productos')
       .select(SELECT_PRODUCTO)
+      .eq('tienda_id', tienda().id)
       .gt('stock', 0)
       .order('nombre')
       .then(({ data, error }) => {
@@ -140,6 +142,7 @@ export default function ManualOrderSheet({ open, onClose, onChanged }: Props) {
         })),
         p_subtotal: subtotal,
         p_origen: 'admin',
+        p_tienda: tienda().id,
       })
       if (error) throw new Error(error.message)
       onChanged()

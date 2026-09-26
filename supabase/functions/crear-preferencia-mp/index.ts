@@ -1,20 +1,20 @@
 // ============================================================================
 // Edge Function: crear-preferencia-mp
 //
-// La llama el checkout (supabase.functions.invoke) después de crear_pedido,
-// cuando la clienta eligió pagar con MercadoPago. Arma la preferencia de
-// Checkout Pro CON LOS DATOS DE LA BASE (ítems, precios, envío: nunca los del
-// front) y devuelve el link de pago al que se redirige.
+// La llama el checkout de una tienda (supabase.functions.invoke) después de
+// crear_pedido, cuando la clienta eligió pagar con MercadoPago. Arma la
+// preferencia de Checkout Pro CON LOS DATOS DE LA BASE (ítems, precios,
+// envío: nunca los del front) y COBRA CON LA CUENTA DE MERCADOPAGO DE ESA
+// TIENDA (su Access Token, en tienda_secretos): la plata va directo a ella.
 //
 // Seguridad:
 //   - Se despliega con verificación JWT (default): solo usuarios logueados.
 //   - Solo se puede pagar un pedido PROPIO, con método 'mercadopago', que no
-//     esté pagado ni cancelado.
+//     esté pagado ni cancelado, de una tienda con MercadoPago conectado.
 //
 // Secretos:
-//   MP_ACCESS_TOKEN  (obligatorio; el de prueba empieza con TEST-)
+//   PLATAFORMA_URL   URL pública de la plataforma (para volver a /t/<slug>)
 //   MP_SANDBOX       (opcional, "true" para usar sandbox_init_point)
-//   STORE_URL        (respaldo si configuracion.url_sitio está vacío)
 //   STORE_CURRENCY   (opcional, default ARS)
 //   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (automáticos)
 // ============================================================================
@@ -35,14 +35,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "method_not_allowed" }, 405);
 
-  const token = Deno.env.get("MP_ACCESS_TOKEN");
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  if (!token) {
-    console.error(`${LOG} falta MP_ACCESS_TOKEN`);
-    return jsonResponse({ error: "El pago online no está configurado." }, 500);
-  }
 
   // Quién llama: el usuario del JWT (no un id que venga en el body).
   const auth = req.headers.get("Authorization") ?? "";
@@ -61,7 +56,7 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: pedido, error } = await admin
     .from("pedidos")
-    .select("id, numero, user_id, email, items, envio, total, estado, metodo_pago, pago_estado")
+    .select("id, numero, tienda_id, user_id, email, items, envio, total, estado, metodo_pago, pago_estado")
     .eq("numero", numero)
     .maybeSingle();
   if (error) {
@@ -73,10 +68,19 @@ Deno.serve(async (req: Request) => {
   if (pedido.pago_estado === "aprobado") return jsonResponse({ error: "Este pedido ya está pagado." }, 409);
   if (pedido.estado === "cancelado") return jsonResponse({ error: "Este pedido está cancelado." }, 409);
 
-  const { data: cfg } = await admin.from("configuracion").select("nombre_tienda, url_sitio").maybeSingle();
-  const storeUrl = (cfg?.url_sitio || Deno.env.get("STORE_URL") || "").replace(/\/$/, "");
+  // Credencial de cobro de la tienda del pedido.
+  const [{ data: secreto }, { data: tienda }, { data: cfg }] = await Promise.all([
+    admin.from("tienda_secretos").select("mp_access_token").eq("tienda_id", pedido.tienda_id).maybeSingle(),
+    admin.from("tiendas").select("slug").eq("id", pedido.tienda_id).maybeSingle(),
+    admin.from("configuracion").select("nombre_tienda").eq("tienda_id", pedido.tienda_id).maybeSingle(),
+  ]);
+  const token = secreto?.mp_access_token;
+  if (!token || !tienda) {
+    return jsonResponse({ error: "Esta tienda todavía no cobra online: coordiná el pago por WhatsApp." }, 409);
+  }
+  const plataformaUrl = (Deno.env.get("PLATAFORMA_URL") || "").replace(/\/$/, "");
   const moneda = Deno.env.get("STORE_CURRENCY") || "ARS";
-  const volver = `${storeUrl}/pago/resultado?numero=${pedido.numero}`;
+  const volver = `${plataformaUrl}/t/${tienda.slug}/pago/resultado?numero=${pedido.numero}`;
 
   const items = (pedido.items as Item[]).map((i) => ({
     title: i.nombre,
@@ -96,7 +100,9 @@ Deno.serve(async (req: Request) => {
         payer: pedido.email ? { email: pedido.email } : undefined,
         external_reference: pedido.id,
         statement_descriptor: (cfg?.nombre_tienda || "").slice(0, 22) || undefined,
-        notification_url: `${supabaseUrl}/functions/v1/webhook-mercadopago`,
+        // El webhook necesita saber de qué tienda es el aviso para consultar
+        // el pago con SU token.
+        notification_url: `${supabaseUrl}/functions/v1/webhook-mercadopago?tienda=${pedido.tienda_id}`,
         back_urls: { success: volver, pending: volver, failure: volver },
         auto_return: "approved",
       },

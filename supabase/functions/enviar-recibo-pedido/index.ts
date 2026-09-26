@@ -61,6 +61,7 @@ interface PedidoRow {
   items: unknown;
   subtotal: number;
   envio: number | null;
+  tienda_id: string;
   user_id: string | null;
   created_at: string;
 }
@@ -276,27 +277,9 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  // Marca: primero la tabla "configuracion" (lo que la dueña edita desde el
-  // admin, migración 0014); si no está, los secretos BRAND_NAME /
-  // BRAND_LOGO_URL / STORE_URL / WHATSAPP_NUMBER. Así un cambio de logo o de
-  // número desde el panel llega también a los mails sin redeployar nada.
-  const { data: cfg, error: cfgError } = await supabase
-    .from("configuracion")
-    .select("nombre_tienda, logo_url, url_sitio, whatsapp")
-    .maybeSingle<ConfigRow>();
-  if (cfgError) {
-    console.warn(`${LOG_PREFIX} no se pudo leer "configuracion", se usan los secretos:`, cfgError.message);
-  }
-  const brandName = cfg?.nombre_tienda || Deno.env.get("BRAND_NAME") || "Tienda";
-  const brandLogoUrl = cfg?.logo_url || Deno.env.get("BRAND_LOGO_URL") || null;
-  const storeUrl = cfg?.url_sitio || Deno.env.get("STORE_URL") || "";
-  // Formato: código de país + área + número, sin "+" ni espacios.
-  const whatsappNumber = cfg?.whatsapp || Deno.env.get("WHATSAPP_NUMBER") || null;
-  const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
-
   const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")
-    .select("id, numero, nombre, email, entrega, items, subtotal, envio, user_id, created_at")
+    .select("id, numero, tienda_id, nombre, email, entrega, items, subtotal, envio, user_id, created_at")
     .eq("id", pedidoId)
     .maybeSingle<PedidoRow>();
 
@@ -308,6 +291,29 @@ Deno.serve(async (req: Request) => {
     console.error(`${LOG_PREFIX} pedido ${pedidoId} no encontrado`);
     return jsonResponse({ ok: false, error: "pedido_not_found" }, 404);
   }
+
+  // Marca: primero la tabla "configuracion" (lo que la dueña edita desde el
+  // admin, migración 0014); si no está, los secretos BRAND_NAME /
+  // BRAND_LOGO_URL / STORE_URL / WHATSAPP_NUMBER. Así un cambio de logo o de
+  // número desde el panel llega también a los mails sin redeployar nada.
+  const { data: cfg, error: cfgError } = await supabase
+    .from("configuracion")
+    .select("nombre_tienda, logo_url, url_sitio, whatsapp")
+    .eq("tienda_id", pedido.tienda_id)
+    .maybeSingle<ConfigRow>();
+  if (cfgError) {
+    console.warn(`${LOG_PREFIX} no se pudo leer "configuracion", se usan los secretos:`, cfgError.message);
+  }
+  const brandName = cfg?.nombre_tienda || Deno.env.get("BRAND_NAME") || "Tienda";
+  const brandLogoUrl = cfg?.logo_url || Deno.env.get("BRAND_LOGO_URL") || null;
+  // Link a la tienda: su dominio propio si lo cargó, si no /t/<slug> en la plataforma.
+  const { data: tiendaRow } = await supabase.from("tiendas").select("slug").eq("id", pedido.tienda_id).maybeSingle();
+  const plataformaUrl = (Deno.env.get("PLATAFORMA_URL") || "").replace(/\/$/, "");
+  const storeUrl =
+    cfg?.url_sitio || (tiendaRow && plataformaUrl ? `${plataformaUrl}/t/${tiendaRow.slug}` : Deno.env.get("STORE_URL") || "");
+  // Formato: código de país + área + número, sin "+" ni espacios.
+  const whatsappNumber = cfg?.whatsapp || Deno.env.get("WHATSAPP_NUMBER") || null;
+  const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
 
   // Resolución de destinatario: pedidos.email (capturado en checkout) →
   // fallback a auth.users.email del user_id → si ninguno existe, no-op.

@@ -14,6 +14,7 @@ import OrderSuccess from '../components/cart/OrderSuccess'
 import '../styles/catalog.css'
 import '../styles/cart.css'
 import { t } from '../i18n/textos'
+import { tienda } from '../tienda'
 
 interface PedidoConfirmado {
   numero: number
@@ -157,6 +158,7 @@ export default function CheckoutPage() {
         })),
         p_subtotal: subtotalFinal,
         p_metodo_pago: metodoPago,
+        p_tienda: tienda().id,
       })
       if (error) throw new Error(error.message)
 

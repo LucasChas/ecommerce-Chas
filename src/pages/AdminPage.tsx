@@ -18,6 +18,8 @@ import CategoryManagerSheet from '../components/admin/CategoryManagerSheet'
 import ManualOrderSheet from '../components/admin/ManualOrderSheet'
 import OrdersList from '../components/admin/OrdersList'
 import StoreSettings from '../components/admin/StoreSettings'
+import AvisoSuscripcion from '../components/admin/AvisoSuscripcion'
+import { useMiTienda } from '../hooks/useMiTienda'
 import '../styles/admin.css'
 import { t } from '../i18n/textos'
 
@@ -37,6 +39,8 @@ const FILTROS: { valor: FiltroEstado; texto: () => string }[] = [
 // Vista ADMINISTRADORA (mobile-first), protegida por login.
 export default function AdminPage() {
   const { session, esAdmin, loading: cargandoSesion } = useAuth()
+  // Estado comercial de la tienda (prueba / suscripción) y datos de la cuenta.
+  const { miTienda, recargar: recargarMiTienda } = useMiTienda(session?.user.id)
   const { productos, refetch: refetchProductos } = useProducts()
   const { categorias, refetch: refetchCategorias } = useCategories()
   const { confirmar } = useDialog()
@@ -151,10 +155,17 @@ export default function AdminPage() {
               <div className="s">Panel admin</div>
             </div>
           </div>
-          <button className="avatar" title="Cerrar sesión" onClick={cerrarSesion}>
-            {inicial}
-          </button>
+          <div className="topbar-acciones">
+            <a className="topbar-link" href="/panel" title="Todas mis tiendas">
+              Mis tiendas
+            </a>
+            <button className="avatar" title="Cerrar sesión" onClick={cerrarSesion}>
+              {inicial}
+            </button>
+          </div>
         </div>
+
+        <AvisoSuscripcion miTienda={miTienda} />
 
         {/* Pestañas: Productos / Pedidos / Mi tienda */}
         <div className="admin-tabs">
@@ -182,7 +193,7 @@ export default function AdminPage() {
         </div>
 
         {vista === 'tienda' ? (
-          <StoreSettings />
+          <StoreSettings miTienda={miTienda} onCuentaGuardada={recargarMiTienda} />
         ) : vista === 'productos' ? (
           <>
             <StatsStrip productos={productos} />

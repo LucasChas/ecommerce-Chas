@@ -9,6 +9,7 @@ import HeaderActions from '../components/account/HeaderActions'
 import ProductDetailView from '../components/catalog/ProductDetailView'
 import '../styles/catalog.css'
 import '../styles/cart.css'
+import { tienda } from '../tienda'
 
 type Estado = 'cargando' | 'ok' | 'no-encontrado'
 
@@ -35,6 +36,7 @@ export default function ProductPage() {
     supabase
       .from('productos')
       .select(SELECT_PRODUCTO)
+      .eq('tienda_id', tienda().id)
       .eq(columna, param)
       .maybeSingle()
       .then(({ data, error }) => {

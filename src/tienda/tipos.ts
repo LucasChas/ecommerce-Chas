@@ -46,6 +46,12 @@ export interface AtributoProducto {
 }
 
 export interface TiendaConfig {
+  /** Id de la tienda en la plataforma ('' fuera de una tienda: landing, alta). */
+  id: string
+  /** Dirección de la tienda: /t/<slug>. */
+  slug: string
+  /** false = prueba vencida sin suscripción o suspendida: la vitrina se pausa. */
+  habilitada: boolean
   /** Nombre comercial. Aparece en header, títulos, mails y mensajes. */
   nombre: string
   /** Bajada corta debajo del logo y en el footer (ej. "Ropa y accesorios"). */
@@ -171,6 +177,6 @@ export interface ConfiguracionDB {
 }
 
 /** Config tal como se escribe en tienda/tienda.config.mjs. */
-export interface TiendaConfigArchivo extends Omit<TiendaConfig, 'tema'> {
+export interface TiendaConfigArchivo extends Omit<TiendaConfig, 'tema' | 'id' | 'slug' | 'habilitada'> {
   tema: TemaArchivo
 }

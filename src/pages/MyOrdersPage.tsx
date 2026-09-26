@@ -68,6 +68,7 @@ export default function MyOrdersPage() {
       .from('pedidos')
       .select('*')
       .eq('user_id', uid)
+      .eq('tienda_id', tienda().id)
       .order('created_at', { ascending: false })
     const lista = (data ?? []) as Pedido[]
     setPedidos(lista)

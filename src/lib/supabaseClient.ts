@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { SESION_DE_GESTION, SLUG } from './contexto'
 
 // Cliente único de Supabase para toda la app.
 // Las claves vienen de variables de entorno (ver .env.example).
@@ -14,24 +15,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // ---------------------------------------------------------------------------
-// Sesiones separadas: panel vs muestrario.
+// Sesiones separadas: gestión (plataforma + paneles) vs. vitrina de cada tienda.
 //
-// El panel y el muestrario son dos "aplicaciones" distintas aunque compartan el
-// código. Si usaran la misma clave de sesión, entrar como clienta en el
-// muestrario pisaría la sesión de la administradora (y al revés): cerrar sesión
-// en un lado dejaría al otro afuera.
-//
-// Guardando la sesión bajo claves distintas, cada vista mantiene su propio
-// login de forma independiente. En producción son dos deploys con dominios
-// distintos (VITE_APP_MODE), y en desarrollo local se distingue por la ruta.
+// Si compartieran la misma clave, entrar como clienta en una tienda pisaría la
+// sesión de la dueña (y al revés), y comprar en la tienda A dejaría la sesión
+// abierta en la tienda B. Ver SESION_DE_GESTION en lib/contexto.ts.
 // ---------------------------------------------------------------------------
-const modo = import.meta.env.VITE_APP_MODE
-const esPanel =
-  modo === 'admin' ||
-  (!modo && typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storageKey: esPanel ? 'tienda-auth-panel' : 'tienda-auth-muestrario',
+    storageKey: SESION_DE_GESTION ? 'plataforma-auth' : `tienda-auth-${SLUG}`,
   },
 })

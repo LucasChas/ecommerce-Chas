@@ -1117,3 +1117,17 @@
   width: auto;
   padding-inline: 22px;
 }
+
+/* ---------- Avisos de tienda (pausada / inexistente) ---------- */
+.aviso-tienda {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.aviso-tienda .btn {
+  width: auto;
+  padding-inline: 26px;
+  margin-top: 8px;
+}

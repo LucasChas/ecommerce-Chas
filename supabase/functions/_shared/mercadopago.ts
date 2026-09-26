@@ -39,6 +39,52 @@ export async function crearPreferencia(token: string, preferencia: unknown, idem
   return data as { id: string; init_point: string; sandbox_init_point: string };
 }
 
+export interface Suscripcion {
+  id: string;
+  status: string; // pending | authorized | paused | cancelled
+  external_reference: string | null;
+  init_point?: string;
+}
+
+/** Crea una suscripción mensual (preapproval) sin plan asociado. */
+export async function crearSuscripcion(token: string, cuerpo: unknown, idempotencia: string) {
+  const res = await fetch(`${API}/preapproval`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": idempotencia,
+    },
+    body: JSON.stringify(cuerpo),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`MP ${res.status}: ${JSON.stringify(data)}`);
+  return data as Suscripcion;
+}
+
+export async function obtenerSuscripcion(token: string, id: string): Promise<Suscripcion> {
+  const res = await fetch(`${API}/preapproval/${encodeURIComponent(id)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`MP ${res.status}: ${JSON.stringify(data)}`);
+  return data as Suscripcion;
+}
+
+/** Estado de una suscripción de MP → estado de la suscripción de la tienda. */
+export function mapearSuscripcion(statusMp: string): "pendiente" | "activa" | "pausada" | "cancelada" {
+  switch (statusMp) {
+    case "authorized":
+      return "activa";
+    case "paused":
+      return "pausada";
+    case "cancelled":
+      return "cancelada";
+    default:
+      return "pendiente";
+  }
+}
+
 export interface PagoMp {
   id: number;
   status: string;

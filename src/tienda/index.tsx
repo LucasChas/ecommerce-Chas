@@ -1,15 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import base from '../../tienda/tienda.config.mjs'
 import { supabase } from '../lib/supabaseClient'
+import { urlTienda } from '../lib/contexto'
 import type { ConfiguracionDB, TiendaConfig, TiendaConfigArchivo } from './tipos'
 import { googleFontsHref, resolverTema } from './presets.mjs'
+import { RUBROS } from './rubros.mjs'
 
 // ============================================================================
 // Configuración de la tienda en tiempo de ejecución.
 //
-// Combina tienda/tienda.config.mjs (valores de la instalación) con la fila de
-// la tabla "configuracion" (lo que la dueña edita desde el admin). La fila de
-// la base gana, campo por campo, cuando tiene valor.
+// En la plataforma hay muchas tiendas: el provider carga la que indica la URL
+// (/t/<slug>) y combina tienda/tienda.config.mjs (valores por defecto de TODAS
+// las tiendas de la plataforma) con la fila de "configuracion" de esa tienda
+// (lo que su dueña edita desde el panel). La fila de la base gana, campo por
+// campo, cuando tiene valor.
 //
 // Además de la hook useTienda(), la config vigente queda en un módulo
 // (tienda()) para que las funciones puras —armar links de WhatsApp,
@@ -34,7 +38,10 @@ function normalizar(cfg: TiendaConfig): TiendaConfig {
 // El archivo trae el tema como preset + overrides: acá se resuelve.
 const archivo = base as TiendaConfigArchivo
 
-let actual: TiendaConfig = normalizar(combinar(archivo, null))
+// Fuera de una tienda (landing, alta) queda esta config por defecto.
+const SIN_TIENDA = { id: '', slug: '', habilitada: false }
+
+let actual: TiendaConfig = normalizar(combinar(archivo, null, SIN_TIENDA))
 
 /** Config vigente (para funciones fuera de React). */
 export function tienda(): TiendaConfig {
@@ -59,10 +66,15 @@ function numeroONull(v: unknown): number | null {
 
 // Aplica la fila de la base sobre la config de la instalación y resuelve el
 // tema: preset (base > archivo) + colores/ornamento puntuales (base > archivo).
-function combinar(cfg: TiendaConfigArchivo, db: ConfiguracionDB | null): TiendaConfig {
-  if (!db) return { ...cfg, tema: resolverTema(cfg.tema) }
+function combinar(
+  cfg: TiendaConfigArchivo,
+  db: ConfiguracionDB | null,
+  info: Pick<TiendaConfig, 'id' | 'slug' | 'habilitada'>,
+): TiendaConfig {
+  if (!db) return { ...cfg, ...info, tema: resolverTema(cfg.tema) }
   return {
     ...cfg,
+    ...info,
     nombre: db.nombre_tienda || cfg.nombre,
     eslogan: db.eslogan ?? cfg.eslogan,
     logoUrl: db.logo_url || cfg.logoUrl,
@@ -116,42 +128,84 @@ function aplicarTema(cfg: TiendaConfig) {
   document.title = cfg.nombre
 }
 
-// Si la tabla no existe todavía (migración sin correr) o la red tarda, la
-// tienda arranca igual con los valores de tienda.config.mjs.
-const ESPERA_MAXIMA_MS = 2500
+// Si la red tarda, la tienda arranca igual con lo que haya.
+const ESPERA_MAXIMA_MS = 4000
 
 interface TiendaContextValue {
   config: TiendaConfig
-  /** Vuelve a leer la tabla "configuracion" (ej. después de guardar en el admin). */
+  /** Vuelve a leer la tienda y su configuración (ej. después de guardar en el panel). */
   recargar: () => Promise<void>
 }
 
 const TiendaContext = createContext<TiendaContextValue | null>(null)
 
-export function TiendaProvider({ children }: { children: React.ReactNode }) {
+type Estado = 'cargando' | 'ok' | 'no-existe'
+
+// Carga la tienda de la URL. Mientras carga no dibuja nada (así las funciones
+// puras nunca ven la config de otra tienda); si no existe, muestra el aviso.
+export function TiendaProvider({
+  slug,
+  noExiste,
+  children,
+}: {
+  slug: string
+  noExiste: React.ReactNode
+  children: React.ReactNode
+}) {
   const [config, setConfig] = useState<TiendaConfig>(actual)
-  const [lista, setLista] = useState(false)
+  const [estado, setEstado] = useState<Estado>('cargando')
 
   const recargar = useCallback(async () => {
-    const { data, error } = await supabase.from('configuracion').select('*').maybeSingle()
-    if (error) console.warn('[tienda] no se pudo leer "configuracion":', error.message)
-    const nueva = normalizar(combinar(archivo, (data as ConfiguracionDB | null) ?? null))
+    const { data: t, error } = await supabase.rpc('tienda_publica', { p_slug: slug }).maybeSingle()
+    if (error) console.warn('[tienda] no se pudo leer la tienda:', error.message)
+    const info = t as {
+      id: string
+      slug: string
+      habilitada: boolean
+      rubro: string | null
+      mp_conectado: boolean
+    } | null
+    if (!info) {
+      setEstado('no-existe')
+      return
+    }
+    const { data: db } = await supabase.from('configuracion').select('*').eq('tienda_id', info.id).maybeSingle()
+    const combinada = combinar(archivo, (db as ConfiguracionDB | null) ?? null, {
+      id: info.id,
+      slug: info.slug,
+      habilitada: info.habilitada,
+    })
+    // El rubro de la tienda define cómo se llaman sus variantes y qué datos
+    // extra tienen sus productos; el pago online se ofrece solo si la tienda
+    // conectó su MercadoPago (y la plataforma lo tiene activado).
+    const rubro = RUBROS[(info.rubro ?? 'generico') as keyof typeof RUBROS] ?? RUBROS.generico
+    const nueva = normalizar({
+      ...combinada,
+      // Sin dominio propio cargado, la tienda vive en /t/<slug> de la plataforma.
+      urlSitio: (db as ConfiguracionDB | null)?.url_sitio || urlTienda(''),
+      catalogo: {
+        ...combinada.catalogo,
+        etiquetaVariante: rubro.etiquetaVariante,
+        atributos: rubro.atributos,
+        placeholderDescripcion: rubro.placeholderDescripcion,
+      },
+      features: { ...combinada.features, mercadoPago: combinada.features.mercadoPago && info.mp_conectado },
+    })
     actual = nueva
     aplicarTema(nueva)
     setConfig(nueva)
-  }, [])
+    setEstado('ok')
+  }, [slug])
 
   useEffect(() => {
     aplicarTema(actual)
-    const timeout = setTimeout(() => setLista(true), ESPERA_MAXIMA_MS)
-    recargar().finally(() => {
-      clearTimeout(timeout)
-      setLista(true)
-    })
+    const timeout = setTimeout(() => setEstado((e) => (e === 'cargando' ? 'no-existe' : e)), ESPERA_MAXIMA_MS)
+    recargar().finally(() => clearTimeout(timeout))
     return () => clearTimeout(timeout)
   }, [recargar])
 
-  if (!lista) return null
+  if (estado === 'cargando') return null
+  if (estado === 'no-existe') return <>{noExiste}</>
 
   return <TiendaContext.Provider value={{ config, recargar }}>{children}</TiendaContext.Provider>
 }
