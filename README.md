@@ -1,8 +1,8 @@
-# ecommerce-chas — plataforma de tiendas online por suscripción
+# Hornero — plataforma de tiendas online por suscripción
 
-Una plataforma donde cualquier negocio crea su tienda online en minutos, con la
-estética de Pecora como base, y la personaliza con su logo, sus colores y sus
-productos. Paga una **suscripción mensual** y cobra sus ventas con **su propia
+*Construí tu propio lugar.* Como el hornero, que levanta su casa con sus
+manos, cualquier negocio crea acá su tienda online en minutos y la personaliza
+con su logo, sus colores y sus productos. Paga una **suscripción mensual** y cobra sus ventas con **su propia
 cuenta de MercadoPago**.
 
 - **Landing** con la propuesta, el precio y contacto para proyectos a medida.
@@ -23,7 +23,7 @@ Storage + Realtime + Edge Functions), sin servidor propio · Vercel o Netlify.
 
 ```
 plataforma/plataforma.config.mjs   TU marca: nombre, precio, días de prueba, contacto
-tienda/                            estética base de todas las tiendas (Pecora)
+tienda/                            estética base de todas las tiendas
 src/
   plataforma/                      landing, alta, "Mis tiendas", suscripción
   tienda/                          carga la tienda de la URL + temas + rubros

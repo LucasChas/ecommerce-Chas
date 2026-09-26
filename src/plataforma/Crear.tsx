@@ -251,7 +251,7 @@ function FormTienda({
         <h1>Tu tienda</h1>
         <div className="field">
           <label htmlFor="campo-5">Nombre de la tienda</label>
-          <input id="campo-5" type="text" required value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Pecora" />
+          <input id="campo-5" type="text" required value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Casa Luna" />
         </div>
         <div className="field">
           <label htmlFor="campo-slug">Dirección web</label>

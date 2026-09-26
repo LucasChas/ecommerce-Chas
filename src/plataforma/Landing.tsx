@@ -4,6 +4,7 @@ import { PRESETS } from '../tienda/presets.mjs'
 import type { PresetTema } from '../tienda/tipos'
 import { precioPlan, waPlataforma } from './formato'
 import CabeceraPlataforma from './CabeceraPlataforma'
+import IsotipoHornero from './IsotipoHornero'
 
 // Landing de la plataforma: qué es, cómo funciona, cuánto sale y cómo
 // empezar (o pedir algo a medida por WhatsApp).
@@ -16,7 +17,7 @@ export default function Landing() {
       <section className="plat-hero">
         <div className="plat-hero-txt">
           <p className="plat-kicker">Tiendas online para marcas con identidad</p>
-          <h1>Tu tienda online, linda de verdad.</h1>
+          <h1>Construí tu propio lugar en internet.</h1>
           <p className="plat-lead">
             Cargá tu logo, tus colores y tus productos, y empezá a vender hoy. Carrito, pedidos, cobros con
             MercadoPago y un panel pensado para usar desde el celular.
@@ -70,6 +71,16 @@ export default function Landing() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="plat-seccion plat-historia">
+        <IsotipoHornero tamano={64} />
+        <h2>¿Por qué Hornero?</h2>
+        <p className="plat-sub">
+          El hornero, nuestro pájaro nacional, construye su propia casa con sus manos, barro por barro. Así pensamos
+          {' '}{plataforma.nombre}: para que cada emprendedor levante su lugar en internet, a su manera y con su marca, sin
+          depender de nadie.
+        </p>
       </section>
 
       <section className="plat-seccion plat-fondo">

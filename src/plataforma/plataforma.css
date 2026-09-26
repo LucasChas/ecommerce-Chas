@@ -1,6 +1,6 @@
 /* ============================================================
    Plataforma: landing, alta de tiendas y "Mis tiendas".
-   Usa los mismos tokens que las tiendas (preset cálido = Pecora).
+   Usa los mismos tokens que las tiendas (preset cálido).
    ============================================================ */
 
 .plat {
@@ -19,6 +19,10 @@
   background: var(--color-superficie);
 }
 .plat-marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-primario-hover);
   font-family: var(--fuente-titulos);
   font-size: clamp(1.3rem, 3vw, 1.7rem);
   font-weight: 600;
@@ -527,3 +531,13 @@
 .mock-card:nth-child(2) .mock-img { background: color-mix(in srgb, var(--color-primario) 45%, var(--color-fondo)); }
 .mock-card:nth-child(3) .mock-img { background: color-mix(in srgb, var(--color-primario) 20%, var(--color-fondo)); }
 .mock-card:nth-child(4) .mock-img { background: color-mix(in srgb, var(--color-primario) 38%, var(--color-fondo)); }
+
+/* ---------- Historia del nombre ---------- */
+.plat-historia {
+  padding-top: 0;
+  color: var(--color-primario-hover);
+}
+.plat-historia h2 {
+  color: var(--color-texto);
+  margin-top: 10px;
+}

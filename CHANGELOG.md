@@ -47,7 +47,7 @@ alta solos, pagan una suscripción mensual y administran su propia tienda.
 
 ## 1.0.0 — 2026-09-26
 
-Primera versión de la maqueta, a partir de Pecora 2.0.
+Primera versión de la maqueta, a partir de una tienda real en producción.
 
 ### Personalización
 - Carpeta `tienda/` (config, tema, archivos públicos): el núcleo en `src/` no

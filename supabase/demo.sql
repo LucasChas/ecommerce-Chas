@@ -18,11 +18,11 @@ begin
   end if;
 
   insert into public.tiendas (slug, nombre, rubro, email_admin, suscripcion_estado, prueba_hasta)
-  values ('demo', 'Pequeña Oveja', 'bebes', 'demo@plataforma.local', 'activa', now() + interval '100 years')
+  values ('demo', 'Casa Luna', 'bebes', 'demo@plataforma.local', 'activa', now() + interval '100 years')
   returning id into v_tienda;
 
   insert into public.configuracion (tienda_id, nombre_tienda, eslogan, whatsapp, email_contacto, tema_preset, envio_costo, envio_gratis_desde)
-  values (v_tienda, 'Pequeña Oveja', 'Ropa y accesorios de bebé', '5490000000000', 'demo@plataforma.local', 'calido', 3500, 60000);
+  values (v_tienda, 'Casa Luna', 'Ropa y accesorios de bebé', '5490000000000', 'demo@plataforma.local', 'calido', 3500, 60000);
 
   insert into public.categorias (tienda_id, nombre) values (v_tienda, 'Bodies') returning id into v_cat;
   insert into public.productos (tienda_id, nombre, categoria_id, descripcion, precio, stock, atributos, orden)
@@ -42,6 +42,6 @@ begin
 
   insert into public.categorias (tienda_id, nombre) values (v_tienda, 'Accesorios') returning id into v_cat;
   insert into public.productos (tienda_id, nombre, categoria_id, descripcion, precio, stock, orden)
-  values (v_tienda, 'Gorrito con orejas', v_cat, 'El clásico de la ovejita.', 8900, 8, 5),
+  values (v_tienda, 'Gorrito con orejas', v_cat, 'Tejido, con orejitas de osito.', 8900, 8, 5),
          (v_tienda, 'Babero de toalla', v_cat, 'Con broche de presión.', 5200, 0, 6);
 end $$;

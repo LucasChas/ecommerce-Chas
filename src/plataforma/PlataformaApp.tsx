@@ -18,6 +18,8 @@ import './plataforma.css'
 export default function PlataformaApp() {
   useEffect(() => {
     document.title = `${plataforma.nombre} — ${plataforma.eslogan}`
+    // Ícono de la pestaña de la plataforma (las tiendas usan el suyo).
+    document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.setAttribute('href', '/hornero.svg')
   }, [])
 
   return (

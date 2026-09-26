@@ -20,7 +20,7 @@ Editá `plataforma/plataforma.config.mjs`: nombre de la plataforma, eslogan,
 URL pública, precio mensual, días de prueba gratis, WhatsApp y mail de
 contacto (el WhatsApp es el del botón "¿Necesitás algo a medida?").
 
-La estética base de todas las tiendas (la de Pecora) está en
+La estética base de todas las tiendas está en
 `tienda/tienda.config.mjs`; cada tienda después elige tema, colores y logo.
 
 > Si cambiás los días de prueba, cambiá también el default de
@@ -66,7 +66,7 @@ Database en `SUPABASE_DB_URL`): `pnpm db:instalar` y `pnpm db:demo`.
      MP_PLATAFORMA_TOKEN=APP_USR-... \
      MP_PLATAFORMA_WEBHOOK_SECRET=... \
      PLATAFORMA_PRECIO=15000 PLATAFORMA_MONEDA=ARS \
-     PLATAFORMA_NOMBRE="Tiendas Chas" PLATAFORMA_URL=https://tu-plataforma.com
+     PLATAFORMA_NOMBRE="Hornero" PLATAFORMA_URL=https://tu-plataforma.com
    pnpm fn:deploy
    ```
    `PLATAFORMA_PRECIO` es lo que se cobra de verdad (la landing muestra el de
@@ -120,7 +120,7 @@ Abrí <http://localhost:5173/>, creá una tienda desde "Crear tienda" y entrá a
 su panel. Las suscripciones y los cobros online necesitan las funciones
 desplegadas (paso 3).
 
-## Migrar Pecora a la plataforma
+## Migrar una tienda existente a la plataforma
 
 La migración 0018 convierte una instalación de una sola tienda (0001-0017 con
 datos) en la primera tienda de la plataforma: sus productos, pedidos y

@@ -9,9 +9,9 @@
 
 /** @type {import('../src/plataforma/tipos').PlataformaConfig} */
 const plataforma = {
-  nombre: 'Tiendas Chas', // ← nombre comercial de la plataforma (provisorio)
-  eslogan: 'Tu tienda online lista en minutos',
-  urlPublica: 'https://tiendaschas.com',
+  nombre: 'Hornero',
+  eslogan: 'Construí tu propio lugar',
+  urlPublica: 'https://hornero.com.ar', // ← confirmar el dominio que registres
 
   plan: {
     nombre: 'Plan Tienda',
@@ -33,7 +33,7 @@ const plataforma = {
   contacto: {
     // WhatsApp de la plataforma: para "hagamos algo a medida" y soporte.
     whatsapp: '5490000000000',
-    email: 'hola@tiendaschas.com',
+    email: 'hola@hornero.com.ar',
     instagram: '',
   },
 
