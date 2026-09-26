@@ -1,9 +1,10 @@
 # ecommerce-chas — maqueta de tienda online personalizable
 
 Tienda online lista para instalar y personalizar para cualquier negocio:
-catálogo público, carrito y checkout, cuentas de clientes con seguimiento de
-pedidos en tiempo real, y un panel de administración pensado para usarse
-desde el celular.
+catálogo público con variantes (talle, color…), carrito y checkout con envío y
+pago online (MercadoPago), cuentas de clientes con seguimiento de pedidos en
+tiempo real, y un panel de administración pensado para usarse desde el
+celular.
 
 Nació de un proyecto real (una tienda de ropa de bebé) y se generalizó para
 que **el mismo código sirva para cualquier marca**: lo que cambia entre
@@ -24,22 +25,25 @@ tienda/                  ← LO ÚNICO QUE SE TOCA POR CLIENTE
   tema.css               ajustes finos de estilo (opcional)
   public/                logo, favicon y archivos públicos
 src/                     núcleo genérico (igual para todas las tiendas)
-  tienda/                lee la config y la combina con la tabla "configuracion"
+  tienda/                config + tabla "configuracion" + presets de tema
+  i18n/                  diccionario de textos (vos / tú)
 supabase/
-  migrations/            esquema versionado (0001 → 0014)
+  migrations/            esquema versionado (0001 → 0017)
   instalar.sql           todas las migraciones juntas (generado)
+  seeds/                 categorías iniciales por rubro
+  tests/                 pruebas SQL de reglas de negocio (las corre la CI)
   auth-email-templates/  plantillas de mails de Auth con %TIENDA_*%
-  functions/             Edge Function del recibo de compra por mail
-scripts/                 asistente de alta, generador de mails y de instalar.sql
-docs/                    plan de la maqueta y guía de instalación
+  functions/             recibo por mail + MercadoPago (preferencia y webhook)
+scripts/                 asistente de alta, generadores y verificador del núcleo
+docs/                    guía de instalación, manual del panel y plan
 ```
 
 ### Tres niveles de personalización
 
 | Qué | Dónde | Quién |
 |---|---|---|
-| Nombre, eslogan, logo, colores, WhatsApp, Instagram, email, URL | Panel → **Mi tienda** (tabla `configuracion`) | La dueña, sin redeploy |
-| Moneda, locale, fuentes, ornamento, features, textos de mensajes, legales | `tienda/tienda.config.mjs` | Quien instala |
+| Nombre, eslogan, logo, tema, colores, ornamento, contacto, costo de envío | Panel → **Mi tienda** (tabla `configuracion`) | La dueña, sin redeploy |
+| Moneda y región, features, rubro (variantes y atributos), trato vos/tú, textos, legales | `tienda/tienda.config.mjs` | Quien instala |
 | Estilos puntuales | `tienda/tema.css` | Quien instala |
 
 Lo que se guarda desde el panel **pisa** a lo del archivo campo por campo;
@@ -54,12 +58,23 @@ En `tienda.config.mjs → features`:
 | `carrito` | Carrito, checkout y pedidos online | **Modo muestrario**: cada producto tiene su botón de consulta por WhatsApp/Instagram |
 | `cuentas` | Registro, login y "Mis pedidos" | Sin cuentas (solo posible sin carrito) |
 | `pedidosManuales` | El admin puede cargar pedidos a mano | Se oculta el botón |
+| `mercadoPago` | Pago online en el checkout (requiere las Edge Functions) | Solo pago a coordinar |
 
-### Colores
+### Temas
 
-El núcleo usa variables por **función** (`--color-primario`, `--color-fondo`,
-`--color-texto`…) definidas en `src/styles/tokens.css`. Se eligen 3 colores y
-el resto (hover, fondos suaves, bordes) se calcula con `color-mix()`.
+Cuatro presets (`calido`, `minimal`, `oscuro`, `vibrante`) con paleta,
+tipografías, radios y ornamento. Encima se puede pisar cualquier valor. El
+núcleo usa variables por **función** (`--color-primario`, `--color-fondo`,
+`--color-texto`…) en `src/styles/tokens.css`, y los tonos derivados (hover,
+fondos suaves, bordes, estados) se calculan con `color-mix()`, así que también
+funcionan en el tema oscuro.
+
+### Rubros
+
+Cada producto puede tener **variantes** con stock propio (el nombre —Talle,
+Color, Presentación— lo define la tienda) y **atributos** propios del rubro
+(Material, Medidas, Ingredientes…). El asistente trae presets para ropa, deco,
+alimentos y genérico.
 
 ---
 
@@ -89,8 +104,13 @@ pnpm nueva-tienda        # asistente: nombre, contacto, colores, moneda, modo
 | `pnpm nueva-tienda` | Asistente de alta de una tienda |
 | `pnpm emails` | Genera los mails de Auth con los datos de la tienda |
 | `pnpm sql:instalacion` | Regenera `supabase/instalar.sql` (correrlo al agregar migraciones) |
+| `pnpm verificar` | Controla que el núcleo no tenga datos de la tienda ni colores sueltos, y que `instalar.sql` esté al día |
+| `pnpm db:instalar` / `pnpm db:seed` | Instala el esquema / las categorías con `psql` (`SUPABASE_DB_URL`) |
+| `pnpm fn:deploy` / `pnpm fn:test` | Despliega / prueba las Edge Functions (Supabase CLI / Deno) |
 
-## Hoja de ruta
+## Documentación
 
-Ver [`docs/PLAN_MAQUETA.md`](docs/PLAN_MAQUETA.md) (plan completo y estado de
-cada fase).
+- [`docs/INSTALACION.md`](docs/INSTALACION.md): alta de una tienda, MercadoPago, deploy y actualizaciones.
+- [`docs/MANUAL_ADMIN.md`](docs/MANUAL_ADMIN.md): manual del panel para la dueña.
+- [`docs/PLAN_MAQUETA.md`](docs/PLAN_MAQUETA.md): plan de la maqueta y modelo comercial.
+- [`CHANGELOG.md`](CHANGELOG.md): versiones del núcleo y migraciones de cada una.

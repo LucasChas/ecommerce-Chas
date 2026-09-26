@@ -1,0 +1,62 @@
+# CI de la maqueta: build del front, verificación del núcleo, Edge Functions
+# (tests + chequeo de tipos) e instalación completa de la base con las
+# pruebas de reglas de negocio.
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  front:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+        env:
+          VITE_SUPABASE_URL: https://ejemplo.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci
+      - run: pnpm run verificar
+
+  funciones:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test supabase/functions/_shared/
+      - run: deno check supabase/functions/*/index.ts
+
+  base-de-datos:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Simular lo mínimo de Supabase
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/stub_supabase.sql
+      - name: Instalar el esquema completo (sin pg_net, que no está en Postgres común)
+        run: sed 's/^create extension if not exists pg_net.*$//' supabase/instalar.sql | psql -q -v ON_ERROR_STOP=1
+      - name: Reglas de negocio
+        run: psql -q -v ON_ERROR_STOP=1 -f supabase/tests/negocio.sql

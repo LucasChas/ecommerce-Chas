@@ -9,15 +9,21 @@ interface Props {
   onEditar: (producto: ProductoConCategoria) => void
   // Refresca los datos después de guardar una edición inline.
   onChanged: () => void
+  // Manija para arrastrar (la pone ProductList cuando se puede reordenar).
+  manija?: React.ReactNode
 }
 
 
 // Card de producto en el panel admin, con edición inline de precio y stock.
 // Los cambios se guardan al salir del campo (onBlur) y Realtime refresca la
 // vista (acá y en el catálogo público).
-export default function ProductCard({ producto, onEditar, onChanged }: Props) {
+export default function ProductCard({ producto, onEditar, onChanged, manija }: Props) {
   const { avisar } = useDialog()
   const disponible = producto.stock > 0
+  const oculto = producto.activo === false
+  // Con variantes el stock se edita por opción (en el formulario): la base no
+  // acepta cambios directos del total (migración 0015).
+  const conVariantes = producto.variantes.length > 0
 
   // Estado local para poder escribir libremente; se confirma al salir del input.
   const [precio, setPrecio] = useState(String(producto.precio))
@@ -52,7 +58,8 @@ export default function ProductCard({ producto, onEditar, onChanged }: Props) {
   }
 
   return (
-    <div className="prod-card">
+    <div className={oculto ? 'prod-card oculto' : 'prod-card'}>
+      {manija}
       <img src={producto.imagen_url || IMG_PLACEHOLDER} alt="" />
       <div className="prod-main">
         <div className="prod-top">
@@ -60,8 +67,8 @@ export default function ProductCard({ producto, onEditar, onChanged }: Props) {
             <div className="prod-name">{producto.nombre}</div>
             <div className="prod-cat">{producto.categoria_nombre ?? 'Sin categoría'}</div>
           </div>
-          <span className={disponible ? 'status-pill ok' : 'status-pill off'}>
-            {disponible ? 'Disponible' : 'Sin stock'}
+          <span className={oculto ? 'status-pill off' : disponible ? 'status-pill ok' : 'status-pill off'}>
+            {oculto ? 'Oculto' : disponible ? 'Disponible' : 'Sin stock'}
           </span>
         </div>
 
@@ -77,11 +84,13 @@ export default function ProductCard({ producto, onEditar, onChanged }: Props) {
             />
           </div>
           <div className="mini-field">
-            <label>Stock</label>
+            <label>Stock{conVariantes && ` (${producto.variantes.length} opciones)`}</label>
             <input
               type="number"
               min={0}
               value={stock}
+              disabled={conVariantes}
+              title={conVariantes ? 'Se edita por opción desde "Editar"' : undefined}
               onChange={(e) => setStock(e.target.value)}
               onBlur={() => confirmarCampo('stock', stock, producto.stock)}
             />

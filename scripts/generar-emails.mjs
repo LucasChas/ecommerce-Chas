@@ -11,6 +11,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import tienda from '../tienda/tienda.config.mjs'
+import { resolverTema } from '../src/tienda/presets.mjs'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const origen = join(raiz, 'supabase', 'auth-email-templates')
@@ -32,7 +33,7 @@ function logoHtml() {
 const valores = {
   '%TIENDA_NOMBRE%': escapar(tienda.nombre),
   '%TIENDA_URL%': escapar(tienda.urlSitio),
-  '%TIENDA_COLOR%': tienda.tema.colorPrimario,
+  '%TIENDA_COLOR%': resolverTema(tienda.tema).colorPrimario,
   '%TIENDA_LOGO%': logoHtml(),
   '%ANIO%': String(new Date().getFullYear()),
 }

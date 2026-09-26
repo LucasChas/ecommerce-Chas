@@ -2,10 +2,11 @@ import { Link } from 'react-router-dom'
 import Logo from '../components/Logo'
 import Scallop from '../components/Scallop'
 import HeaderActions from '../components/account/HeaderActions'
-import { useCart } from '../context/CartContext'
+import { useCart, nombreItem } from '../context/CartContext'
 import { money } from '../lib/format'
 import '../styles/catalog.css'
 import '../styles/cart.css'
+import { t } from '../i18n/textos'
 
 // Página del carrito (/carrito): lista de ítems, cantidades, subtotal y cierre.
 // Por ahora el cierre es por WhatsApp (arma el pedido); el checkout completo
@@ -31,33 +32,33 @@ export default function CartPage() {
             Tu carrito está vacío.
             <br />
             <Link className="pp-back" to="/">
-              ← Volver al muestrario
+              ← Volver a la tienda
             </Link>
           </div>
         ) : (
           <>
             <div className="cart-list">
               {items.map((i) => (
-                <div className="cart-item" key={i.id}>
-                  <img src={i.imagen} alt={i.nombre} />
+                <div className="cart-item" key={i.clave}>
+                  <img src={i.imagen} alt={nombreItem(i)} />
                   <div className="cart-item-main">
                     <Link to={`/producto/${i.slug ?? i.id}`} className="cart-item-name">
-                      {i.nombre}
+                      {nombreItem(i)}
                     </Link>
                     <p className="cart-item-price">{money(i.precio)}</p>
                     <div className="qty">
-                      <button type="button" onClick={() => setCantidad(i.id, i.cantidad - 1)} aria-label="Restar">
+                      <button type="button" onClick={() => setCantidad(i.clave, i.cantidad - 1)} aria-label="Restar">
                         −
                       </button>
                       <span>{i.cantidad}</span>
-                      <button type="button" onClick={() => setCantidad(i.id, i.cantidad + 1)} aria-label="Sumar">
+                      <button type="button" onClick={() => setCantidad(i.clave, i.cantidad + 1)} aria-label="Sumar">
                         +
                       </button>
                     </div>
                   </div>
                   <div className="cart-item-right">
                     <p className="cart-item-total">{money(i.precio * i.cantidad)}</p>
-                    <button type="button" className="cart-remove" onClick={() => quitar(i.id)}>
+                    <button type="button" className="cart-remove" onClick={() => quitar(i.clave)}>
                       Quitar
                     </button>
                   </div>
@@ -72,7 +73,7 @@ export default function CartPage() {
               </div>
               {/* TODO(owner-copy): revisar este texto una vez definida la copy final del checkout. */}
               <p className="cart-note">
-                En el siguiente paso cargás tus datos y la entrega. Coordinamos el envío por email.
+                {t('carrito.siguientePaso')}
               </p>
 
               <Link className="btn btn-primary" to="/checkout">

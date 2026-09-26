@@ -118,7 +118,7 @@ export function PrivacyPage() {
         </div>
 
         <Link className="pp-back" to="/">
-          ← Volver al muestrario
+          ← Volver a la tienda
         </Link>
       </main>
     </div>

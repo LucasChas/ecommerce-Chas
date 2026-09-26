@@ -1,10 +1,20 @@
 # Edge Functions
 
-Este proyecto NO adopta el stack local de Supabase (`supabase init`, `db push`,
-etc.). Las migraciones SQL se siguen corriendo a mano en el SQL Editor del
-dashboard, exactamente como hasta ahora (`0001` a `0012`). El único uso del
-CLI de Supabase en este repo es para desplegar Edge Functions y setear sus
-secretos — nada más.
+| Función | Qué hace | Deploy |
+|---|---|---|
+| `enviar-recibo-pedido` | Mail de comprobante al crear un pedido (Gmail API) | JWT (default) |
+| `crear-preferencia-mp` | Arma el pago de MercadoPago de un pedido propio | JWT (default) |
+| `webhook-mercadopago` | Recibe los avisos de MP y actualiza el estado del pago | `--no-verify-jwt` |
+
+`pnpm fn:deploy` despliega las tres con los flags correctos y
+`pnpm fn:test` corre los tests de `_shared/`. La configuración de
+MercadoPago (Access Token, webhook y secretos) está en
+[`docs/INSTALACION.md`](../../docs/INSTALACION.md#mercadopago-opcional). Lo que
+sigue es el detalle del mail de recibo.
+
+La base se puede instalar pegando `supabase/instalar.sql` en el SQL Editor o
+con la CLI (ver `docs/INSTALACION.md`); para las Edge Functions la CLI es
+necesaria: despliega las funciones y setea sus secretos.
 
 ## `enviar-recibo-pedido`
 

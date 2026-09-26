@@ -5,6 +5,7 @@ import HeaderActions from '../components/account/HeaderActions'
 import { useTienda } from '../tienda'
 import '../styles/catalog.css'
 import '../styles/cart.css'
+import { t } from '../i18n/textos'
 
 // Texto legal genérico: nombre, sitio y email salen de la config de la tienda.
 // Es un modelo: cada tienda debe revisarlo con su asesor legal.
@@ -79,13 +80,13 @@ export function TermsPage() {
 
           <h2>7. Canal de Contacto y Soporte</h2>
           <p>
-            Para cualquier consulta sobre pedidos, devoluciones o aclaraciones legales, escribinos a:{' '}
+            {t('legal.contacto')}{' '}
             <a href={`mailto:${email}`}>{email}</a>.
           </p>
         </div>
 
         <Link className="pp-back" to="/">
-          ← Volver al muestrario
+          ← Volver a la tienda
         </Link>
       </main>
     </div>

@@ -1,17 +1,22 @@
 {
   "name": "ecommerce-chas",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Maqueta de e-commerce personalizable: catálogo, carrito, pedidos y panel admin sobre React + Supabase.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "deploy:fn": "supabase functions deploy enviar-recibo-pedido",
     "nueva-tienda": "node scripts/nueva-tienda.mjs",
     "emails": "node scripts/generar-emails.mjs",
-    "sql:instalacion": "node scripts/armar-instalacion.mjs"
+    "sql:instalacion": "node scripts/armar-instalacion.mjs",
+    "verificar": "node scripts/verificar-nucleo.mjs",
+    "db:instalar": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/instalar.sql",
+    "db:seed": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/seed.sql",
+    "db:push": "supabase db push",
+    "fn:deploy": "supabase functions deploy enviar-recibo-pedido && supabase functions deploy crear-preferencia-mp && supabase functions deploy webhook-mercadopago --no-verify-jwt",
+    "fn:test": "deno test supabase/functions/_shared/"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

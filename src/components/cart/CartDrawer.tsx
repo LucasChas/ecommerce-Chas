@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCart } from '../../context/CartContext'
+import { useCart, nombreItem } from '../../context/CartContext'
 import { money } from '../../lib/format'
 
 // Carrito lateral (drawer) que se desliza desde la derecha. Es la vista rápida
@@ -56,31 +56,31 @@ export default function CartDrawer() {
           <div className="drawer-empty">
             <p>Tu carrito está vacío.</p>
             <button className="btn btn-primary" onClick={() => irA('/')}>
-              Ver el muestrario
+              Ver la tienda
             </button>
           </div>
         ) : (
           <>
             <div className="drawer-items">
               {items.map((i) => (
-                <div className="drawer-item" key={i.id}>
-                  <img src={i.imagen} alt={i.nombre} />
+                <div className="drawer-item" key={i.clave}>
+                  <img src={i.imagen} alt={nombreItem(i)} />
                   <div className="drawer-item-main">
-                    <p className="drawer-item-name">{i.nombre}</p>
+                    <p className="drawer-item-name">{nombreItem(i)}</p>
                     <p className="drawer-item-price">{money(i.precio)}</p>
                     <div className="qty qty-sm">
-                      <button type="button" onClick={() => setCantidad(i.id, i.cantidad - 1)} aria-label="Restar">
+                      <button type="button" onClick={() => setCantidad(i.clave, i.cantidad - 1)} aria-label="Restar">
                         −
                       </button>
                       <span>{i.cantidad}</span>
-                      <button type="button" onClick={() => setCantidad(i.id, i.cantidad + 1)} aria-label="Sumar">
+                      <button type="button" onClick={() => setCantidad(i.clave, i.cantidad + 1)} aria-label="Sumar">
                         +
                       </button>
                     </div>
                   </div>
                   <div className="drawer-item-right">
                     <span className="drawer-item-total">{money(i.precio * i.cantidad)}</span>
-                    <button className="drawer-remove" onClick={() => quitar(i.id)} aria-label="Quitar">
+                    <button className="drawer-remove" onClick={() => quitar(i.clave)} aria-label="Quitar">
                       Quitar
                     </button>
                   </div>

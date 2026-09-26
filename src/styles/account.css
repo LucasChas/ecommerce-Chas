@@ -282,3 +282,35 @@
   color: var(--color-texto);
   text-decoration: underline;
 }
+
+/* ---------- Estado del pago online en "Mis pedidos" ---------- */
+.mp-pago {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-primario-suave);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.mp-pago--aprobado {
+  background: var(--color-exito-suave);
+  color: var(--color-exito);
+}
+.mp-pago--rechazado {
+  background: var(--color-peligro-suave);
+  color: var(--color-peligro);
+}
+.mp-pago button {
+  border: none;
+  border-radius: 100px;
+  padding: 8px 14px;
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+  font-weight: 700;
+  cursor: pointer;
+}

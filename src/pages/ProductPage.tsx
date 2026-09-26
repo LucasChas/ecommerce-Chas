@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { SELECT_PRODUCTO, aplanarProducto } from '../lib/productos'
 import type { ProductoConCategoria } from '../types'
 import Logo from '../components/Logo'
 import Scallop from '../components/Scallop'
@@ -33,7 +34,7 @@ export default function ProductPage() {
     const columna = param && UUID_RE.test(param) ? 'id' : 'slug'
     supabase
       .from('productos')
-      .select('*, categorias(nombre)')
+      .select(SELECT_PRODUCTO)
       .eq(columna, param)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -42,13 +43,7 @@ export default function ProductPage() {
           setEstado('no-encontrado')
           return
         }
-        const { categorias, ...resto } = data as Record<string, unknown> & {
-          categorias: { nombre: string } | null
-        }
-        setProducto({
-          ...(resto as unknown as ProductoConCategoria),
-          categoria_nombre: categorias?.nombre ?? null,
-        })
+        setProducto(aplanarProducto(data))
         setEstado('ok')
       })
     return () => {
@@ -79,7 +74,7 @@ export default function ProductPage() {
             No encontramos este producto.
             <br />
             <Link className="pp-back" to="/">
-              ← Volver al muestrario
+              ← Volver a la tienda
             </Link>
           </div>
         )}
@@ -95,7 +90,7 @@ export default function ProductPage() {
             <ProductDetailView producto={producto} />
 
             <Link className="pp-back" to="/">
-              ← Volver al muestrario
+              ← Volver a la tienda
             </Link>
           </>
         )}

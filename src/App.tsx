@@ -10,6 +10,7 @@ import AdminPage from './pages/AdminPage'
 import CartDrawer from './components/cart/CartDrawer'
 import Footer from './components/catalog/Footer'
 import { PrivacyPage } from './pages/PrivacyPage'
+import PaymentResultPage from './pages/PaymentResultPage'
 import { TermsPage } from './pages/TermsPage'
 import { tienda } from './tienda'
 // El "modo" define qué expone cada deploy (ver VITE_APP_MODE en .env):
@@ -47,6 +48,7 @@ function RutasCatalogo() {
       {cuentas && <Route path="/cuenta" element={<AccountPage />} />}
       {cuentas && <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />}
       {cuentas && <Route path="/mis-pedidos" element={<MyOrdersPage />} />}
+      {carrito && <Route path="/pago/resultado" element={<PaymentResultPage />} />}
       <Route path="/privacidad" element={<PrivacyPage />} />
       <Route path="/terminos" element={<TermsPage />} />
     </Route>

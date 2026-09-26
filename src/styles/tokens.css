@@ -20,24 +20,25 @@
 
   /* --- Derivados del primario --- */
   --color-primario-hover: color-mix(in srgb, var(--color-primario) 80%, black);
-  --color-primario-suave: color-mix(in srgb, var(--color-primario) 22%, white);
+  --color-primario-suave: color-mix(in srgb, var(--color-primario) 22%, var(--color-fondo));
   --color-acento: color-mix(in srgb, var(--color-primario) 85%, #8a4a2a);
 
   /* --- Derivados del fondo / texto --- */
   --color-superficie: color-mix(in srgb, var(--color-fondo) 88%, var(--color-primario));
   --color-borde: color-mix(in srgb, var(--color-fondo) 80%, var(--color-primario));
   --color-texto-suave: color-mix(in srgb, var(--color-texto) 65%, var(--color-fondo));
-  --color-tarjeta: #fff;           /* fondo de cards, inputs y modales   */
+  --color-tarjeta: #fff;           /* fondo de cards, inputs y modales (lo cambia el preset oscuro) */
   --color-sobre-primario: #fff;    /* texto encima de un fondo primario  */
   --sombra-rgb: 51, 48, 42;        /* base de sombras y velos (r, g, b)  */
 
-  /* --- Estados (semánticos, iguales para todas las tiendas) --- */
+  /* --- Estados (semánticos). Los "suaves" se mezclan con el fondo para
+         que funcionen igual en temas claros y oscuros. --- */
   --color-peligro: #C9645A;
-  --color-peligro-suave: #F3E4E1;
+  --color-peligro-suave: color-mix(in srgb, var(--color-peligro) 16%, var(--color-fondo));
   --color-agotado: color-mix(in srgb, var(--color-texto-suave) 70%, var(--color-fondo));
   --color-agotado-fondo: color-mix(in srgb, var(--color-superficie) 70%, var(--color-fondo));
   --color-exito: #7BA05B;
-  --color-exito-suave: #E4EFDA;
+  --color-exito-suave: color-mix(in srgb, var(--color-exito) 18%, var(--color-fondo));
 
   /* --- Tipografías (configurables en tienda.config.mjs → tema) --- */
   --fuente-titulos: 'Fraunces', serif;

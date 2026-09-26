@@ -1,5 +1,6 @@
 import type { Pedido } from '../../types'
 import OrderCard from './OrderCard'
+import { t } from '../../i18n/textos'
 
 interface Props {
   pedidos: Pedido[]
@@ -57,19 +58,19 @@ export default function OrdersList({
             <>
               La papelera está vacía.
               <br />
-              Los pedidos que borres van a parar acá y podés recuperarlos.
+              {t('admin.papeleraVacia')}
             </>
           ) : filtrando ? (
             <>
               Ningún pedido coincide con la búsqueda.
               <br />
-              Probá con otro nombre, teléfono o número.
+              {t('admin.pedidosSinResultados')}
             </>
           ) : (
             <>
               Todavía no hay pedidos.
               <br />
-              Cuando un cliente finalice una compra en el muestrario, aparece acá.
+              Cuando un cliente finalice una compra en la tienda, aparece acá.
             </>
           )}
         </div>

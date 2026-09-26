@@ -9,17 +9,21 @@ import { money } from '../lib/format'
 import { waConsultaCancelacionLink } from '../lib/config'
 import { IMG_PLACEHOLDER, portadaDe } from '../lib/images'
 import ImageZoom from '../components/common/ImageZoom'
+import { t } from '../i18n/textos'
+import { TEXTO_PAGO, irAPagar } from '../lib/pagos'
+import { useDialog } from '../context/DialogContext'
 import { tienda } from '../tienda'
 import type { EstadoPedido, Pedido } from '../types'
 import '../styles/catalog.css'
 import '../styles/account.css'
 
 // Cómo se le muestra el estado a la clienta (más amable que el interno).
-const ESTADO_CLIENTE: Record<EstadoPedido, { texto: string; clase: string }> = {
-  nuevo: { texto: 'Pedido recibido', clase: 'e-nuevo' },
-  confirmado: { texto: 'Confirmado · en preparación', clase: 'e-confirmado' },
-  entregado: { texto: 'Entregado', clase: 'e-entregado' },
-  cancelado: { texto: 'Cancelado', clase: 'e-cancelado' },
+// El texto de cada estado sale del diccionario (idioma.textos lo puede pisar).
+const ESTADO_CLIENTE: Record<EstadoPedido, { texto: () => string; clase: string }> = {
+  nuevo: { texto: () => t('estado.nuevo'), clase: 'e-nuevo' },
+  confirmado: { texto: () => t('estado.confirmado'), clase: 'e-confirmado' },
+  entregado: { texto: () => t('estado.entregado'), clase: 'e-entregado' },
+  cancelado: { texto: () => t('estado.cancelado'), clase: 'e-cancelado' },
 }
 
 // Un pedido que la admin mandó a la papelera se le muestra a la clienta como
@@ -37,6 +41,15 @@ function fecha(iso: string): string {
 export default function MyOrdersPage() {
   const { session, loading: cargandoSesion } = useAuth()
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  // Pago online pendiente o rechazado: se reintenta desde acá.
+  const [pagando, setPagando] = useState<number | null>(null)
+  const { avisar } = useDialog()
+  async function pagar(numero: number) {
+    setPagando(numero)
+    const error = await irAPagar(numero)
+    setPagando(null)
+    if (error) await avisar({ titulo: 'No se pudo abrir el pago', mensaje: error })
+  }
   const [cargando, setCargando] = useState(true)
   // Miniatura por producto (id -> url). El pedido solo guarda nombre/precio,
   // no imagen (foto "de época"), así que la traemos del producto actual —
@@ -113,7 +126,7 @@ export default function MyOrdersPage() {
             Todavía no hiciste pedidos.
             <br />
             <Link className="pp-back" to="/">
-              ← Ir al muestrario
+              ← Ir a la tienda
             </Link>
           </div>
         ) : (
@@ -130,7 +143,7 @@ export default function MyOrdersPage() {
                           alcanza con la fecha para reconocer cuál es cuál. */}
                       <span className="mp-num">Pedido del {fecha(p.created_at)}</span>
                     </div>
-                    <span className={`mp-estado ${est.clase}`}>{est.texto}</span>
+                    <span className={`mp-estado ${est.clase}`}>{est.texto()}</span>
                   </div>
                   <div className="mp-items">
                     {p.items.map((i, idx) => {
@@ -152,9 +165,15 @@ export default function MyOrdersPage() {
                         </div>
                       )
                     })}
+                    {Number(p.envio) > 0 && (
+                      <div className="mp-item">
+                        <span>Envío</span>
+                        <span>{money(Number(p.envio))}</span>
+                      </div>
+                    )}
                     <div className="mp-item total">
                       <span>Total</span>
-                      <strong>{money(p.subtotal)}</strong>
+                      <strong>{money(Number(p.total ?? p.subtotal))}</strong>
                     </div>
                   </div>
                   <div className="mp-entrega">
@@ -193,6 +212,18 @@ export default function MyOrdersPage() {
                       : 'Retiro / a coordinar'}
                   </div>
 
+                  {/* Pago online: estado y, si no se completó, cómo pagarlo. */}
+                  {p.metodo_pago === 'mercadopago' && estado !== 'cancelado' && (
+                    <div className={`mp-pago mp-pago--${p.pago_estado ?? 'pendiente'}`}>
+                      <span>{TEXTO_PAGO[p.pago_estado ?? 'pendiente']}</span>
+                      {(p.pago_estado ?? 'pendiente') !== 'aprobado' && p.pago_estado !== 'reembolsado' && (
+                        <button type="button" onClick={() => pagar(p.numero)} disabled={pagando === p.numero}>
+                          {pagando === p.numero ? 'Abriendo…' : 'Pagar con MercadoPago'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* Un pedido cancelado siempre tiene una explicación del otro
                       lado: le damos a la clienta cómo pedirla. */}
                   {estado === 'cancelado' && (
@@ -215,7 +246,7 @@ export default function MyOrdersPage() {
             duplicarlo acá abajo. */}
         {!cargando && pedidos.length > 0 && (
           <Link className="pp-back" to="/">
-            ← Volver al muestrario
+            ← Volver a la tienda
           </Link>
         )}
       </main>

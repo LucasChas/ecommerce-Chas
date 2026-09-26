@@ -60,6 +60,7 @@ interface PedidoRow {
   entrega: "envio" | "coordinar";
   items: unknown;
   subtotal: number;
+  envio: number | null;
   user_id: string | null;
   created_at: string;
 }
@@ -295,7 +296,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")
-    .select("id, numero, nombre, email, entrega, items, subtotal, user_id, created_at")
+    .select("id, numero, nombre, email, entrega, items, subtotal, envio, user_id, created_at")
     .eq("id", pedidoId)
     .maybeSingle<PedidoRow>();
 
@@ -349,6 +350,7 @@ Deno.serve(async (req: Request) => {
     nombre: pedido.nombre,
     items: parseItems(pedido.items),
     subtotal: Number(pedido.subtotal) || 0,
+    envio: Number(pedido.envio) || 0,
     entrega: pedido.entrega === "envio" ? "envio" : "coordinar",
   };
 

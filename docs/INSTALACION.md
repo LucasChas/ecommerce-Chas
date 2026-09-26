@@ -2,7 +2,8 @@
 
 Tiempo estimado: menos de una hora. Necesitás una cuenta de
 [Supabase](https://supabase.com) y una de [Vercel](https://vercel.com) o
-[Netlify](https://netlify.com).
+[Netlify](https://netlify.com). Para cobrar online, además, una cuenta de
+[MercadoPago](https://www.mercadopago.com.ar/developers) del cliente.
 
 > **Cuentas y planes:** conviene que el proyecto de Supabase quede a nombre
 > del cliente (vos como miembro). Revisá los límites vigentes de los planes
@@ -19,29 +20,38 @@ pnpm nueva-tienda
 ```
 
 El asistente pregunta nombre, eslogan, URL, WhatsApp, Instagram, email,
-colores, moneda, locale y si vende online (carrito) o es solo muestrario.
-Completa `tienda/tienda.config.mjs`, arma `supabase/instalar.sql` y genera los
-mails de Auth.
+**rubro** (genérico, ropa, deco, alimentos), **tema** (cálido, minimal,
+oscuro, vibrante), colores, **trato** (vos / tú), moneda, locale y si vende
+online (carrito) o es solo muestrario. Completa `tienda/tienda.config.mjs`,
+copia las categorías del rubro a `supabase/seed.sql`, arma
+`supabase/instalar.sql` y genera los mails de Auth.
 
-Después, a mano si hace falta:
+Después, a mano si hace falta (todo en `tienda/tienda.config.mjs`):
 
-- **Logo y favicon:** poné los archivos en `tienda/public/` (por ejemplo
-  `logo.png`) y en la config `logoUrl: '/logo.png'`. Reemplazá
-  `tienda/public/favicon.svg`. El logo también se puede subir más tarde desde
-  el panel → **Mi tienda**.
-- **Textos de WhatsApp y de confirmación:** `textos` en la config.
-- **Fuentes y ornamento:** `tema.fuenteTitulos`, `tema.fuenteTexto` (familias
-  de Google Fonts) y `tema.ornamento` (`'festón'` o `'ninguno'`).
-- **Legales:** `/terminos` y `/privacidad` se arman con nombre, URL y email de
-  la config. Son un modelo: el cliente debe revisarlos con su asesor legal.
+| Qué | Dónde |
+|---|---|
+| Logo y favicon | Archivos en `tienda/public/` y `logoUrl: '/logo.png'`. Reemplazá `tienda/public/favicon.svg`. El logo también se sube desde el panel → **Mi tienda**. |
+| Pago online | `features.mercadoPago: true` + paso 3. |
+| Envío | `envio.costo` / `envio.gratisDesde` (o desde **Mi tienda**). `null` = a coordinar. |
+| Variantes y datos del rubro | `catalogo.etiquetaVariante` (Talle, Color…) y `catalogo.atributos` (Material, Medidas…). |
+| Tipografías y adorno | `tema.fuenteTitulos` / `tema.fuenteTexto` (Google Fonts) y `tema.ornamento` (`festón`, `onda`, `línea`, `ninguno`). |
+| Textos | `textos` (mensajes de WhatsApp, éxito del pedido) e `idioma.textos` para pisar cualquier texto de `src/i18n/textos.ts` (por ejemplo los nombres de los estados). |
+| Estilos puntuales | `tienda/tema.css`. |
+| Legales | `/terminos` y `/privacidad` usan nombre, URL y email. Son un modelo: el cliente los revisa con su asesor legal. |
 
 ## 2. Base de datos (Supabase)
 
 1. Creá un proyecto nuevo y anotá, en **Project Settings → API**, la
    **Project URL** y la **anon public key**.
-2. **SQL Editor → New query**: pegá todo `supabase/instalar.sql` y ejecutá.
-   Crea tablas, políticas RLS, el bucket de imágenes, triggers, Realtime y la
-   tabla `configuracion`.
+2. Instalá el esquema, de una de estas dos formas:
+   - **SQL Editor → New query**: pegá todo `supabase/instalar.sql` y ejecutá;
+     después pegá `supabase/seed.sql` (categorías iniciales).
+   - O por consola, con la connection string de **Project Settings →
+     Database** en `SUPABASE_DB_URL`:
+     ```bash
+     export SUPABASE_DB_URL="postgresql://postgres:...@db.xxxx.supabase.co:5432/postgres"
+     pnpm db:instalar && pnpm db:seed
+     ```
 3. **Authentication → Users → Add user**: creá la cuenta de la dueña (email +
    contraseña, "Auto Confirm"). Después, en el SQL Editor:
 
@@ -60,14 +70,47 @@ Después, a mano si hace falta:
 6. **Authentication → URL Configuration:** Site URL = la URL pública de la
    tienda; agregala también en Redirect URLs.
 
-### Mail de recibo de compra (opcional)
+## 3. Edge Functions (mail de recibo y MercadoPago)
 
-La Edge Function `enviar-recibo-pedido` manda el comprobante por mail al
-crear un pedido. El paso a paso (Gmail OAuth, secretos y Vault) está en
-[`supabase/functions/README.md`](../supabase/functions/README.md). Toma nombre,
-logo, URL y WhatsApp de la tabla `configuracion`.
+Con la [Supabase CLI](https://supabase.com/docs/guides/cli) instalada:
 
-## 3. Probar en local
+```bash
+supabase login
+supabase init            # solo si no existe supabase/config.toml (no toca las migraciones)
+supabase link --project-ref <ref-del-proyecto>
+pnpm fn:deploy           # despliega las tres funciones con los flags correctos
+```
+
+### Mail de recibo (opcional)
+
+`enviar-recibo-pedido` manda el comprobante al crear un pedido. El paso a
+paso (Gmail OAuth, secretos y Vault) está en
+[`supabase/functions/README.md`](../supabase/functions/README.md).
+
+### MercadoPago (opcional)
+
+1. En MercadoPago → **Tus integraciones**, creá una aplicación (Checkout Pro)
+   y copiá el **Access Token** (el de prueba empieza con `TEST-`).
+2. En **Webhooks**, configurá la URL
+   `https://<ref>.supabase.co/functions/v1/webhook-mercadopago`, evento
+   **Pagos**, y copiá la **clave secreta**.
+3. Cargá los secretos:
+   ```bash
+   supabase secrets set MP_ACCESS_TOKEN=TEST-... MP_WEBHOOK_SECRET=... \
+     STORE_URL=https://mi-tienda.com STORE_CURRENCY=ARS MP_SANDBOX=true
+   ```
+   (`MP_SANDBOX=true` solo mientras probás con credenciales de prueba.)
+4. En `tienda.config.mjs`: `features.mercadoPago: true`.
+
+Cómo funciona: el checkout crea el pedido (con el stock reservado) y pide el
+link de pago a `crear-preferencia-mp`, que arma la preferencia con los precios
+**de la base**. MercadoPago avisa a `webhook-mercadopago`, que valida la
+firma, consulta el pago en la API de MP y recién ahí marca el pedido como
+pagado. Si el pago se rechaza, el pedido queda reservado y el cliente puede
+reintentar desde "Mis pedidos"; si no vuelve, la dueña lo cancela desde el
+panel y el stock se devuelve solo.
+
+## 4. Probar en local
 
 ```bash
 cp .env.example .env     # completá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
@@ -77,7 +120,7 @@ pnpm dev
 - Tienda: <http://localhost:5173/>
 - Panel: <http://localhost:5173/admin>
 
-## 4. Deploy: dos URLs (tienda pública + panel privado)
+## 5. Deploy: dos URLs (tienda pública + panel privado)
 
 `VITE_APP_MODE` define qué expone cada deploy, así se crean **dos proyectos
 desde el mismo repo**:
@@ -94,13 +137,18 @@ En los dos: `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, build
 > La privacidad real del panel la dan el login y RLS: aunque alguien encuentre
 > la URL, sin una cuenta con rol admin no puede hacer nada.
 
-## 5. Entregar
+## 6. Entregar
 
-- Pasale a la dueña la URL del panel y su usuario.
-- Mostrale la pestaña **Mi tienda**: desde ahí cambia nombre, logo, colores y
-  contacto sin depender de vos.
+- Pasale a la dueña la URL del panel, su usuario y el
+  [manual del panel](MANUAL_ADMIN.md).
+- Mostrale la pestaña **Mi tienda**: desde ahí cambia nombre, logo, tema,
+  colores, contacto y envío sin depender de vos.
 
 ## Actualizar una tienda existente
 
-Cuando el núcleo suma migraciones nuevas, corré en el SQL Editor solo las
-que la tienda todavía no tiene (`supabase/migrations/00NN_*.sql`, en orden).
+1. Traé los cambios del núcleo (`git merge upstream/main` si la tienda vive en
+   su propio repo; ver [`PLAN_MAQUETA.md`](PLAN_MAQUETA.md) §7).
+2. Leé el [`CHANGELOG.md`](../CHANGELOG.md): dice qué migraciones nuevas hay.
+3. Corré solo esas migraciones (`supabase/migrations/00NN_*.sql`, en orden) en
+   el SQL Editor, o con `pnpm db:push` si la tienda usa la CLI.
+4. `pnpm fn:deploy` si cambiaron las funciones, y redeploy del front.

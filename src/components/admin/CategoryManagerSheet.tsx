@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Categoria, ProductoConCategoria } from '../../types'
 import { supabase } from '../../lib/supabaseClient'
 import { useDialog } from '../../context/DialogContext'
+import { t } from '../../i18n/textos'
 
 interface Props {
   open: boolean
@@ -102,7 +103,7 @@ export default function CategoryManagerSheet({
                     disabled={enUso}
                     title={
                       enUso
-                        ? 'Reasigná o eliminá primero los productos de esta categoría'
+                        ? t('admin.categoriaConProductos')
                         : 'Eliminar categoría'
                     }
                     onClick={() => eliminar(c)}

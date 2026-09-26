@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient'
 import Logo from '../Logo'
 import { tienda } from '../../tienda'
 import PasswordInput from '../common/PasswordInput'
+import { t } from '../../i18n/textos'
 
 // Pantalla de login (email + contraseña) previa a entrar al panel /admin.
 // Al iniciar sesión, useAuth detecta la nueva sesión y AdminPage muestra el panel.
@@ -18,7 +19,7 @@ export default function LoginForm() {
     setError(null)
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setError('No pudimos iniciar sesión. Revisá el email y la contraseña.')
+    if (error) setError(t('admin.loginError'))
     setCargando(false)
   }
 
@@ -27,7 +28,7 @@ export default function LoginForm() {
       <Logo className="login-logo" />
       <div>
         <h1>Panel de {tienda().nombre}</h1>
-        <p className="sub">Ingresá para administrar el muestrario.</p>
+        <p className="sub">{t('admin.loginSub')}</p>
       </div>
 
       {error && <p className="form-error">{error}</p>}

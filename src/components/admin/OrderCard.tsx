@@ -3,7 +3,9 @@ import { supabase } from '../../lib/supabaseClient'
 import { useDialog } from '../../context/DialogContext'
 import { money } from '../../lib/format'
 import { waAClienteLink } from '../../lib/config'
+import { TEXTO_PAGO } from '../../lib/pagos'
 import { tienda } from '../../tienda'
+import { t } from '../../i18n/textos'
 
 interface Props {
   pedido: Pedido
@@ -53,7 +55,7 @@ export default function OrderCard({ pedido, onChanged }: Props) {
     const ok = await confirmar({
       titulo: `¿Borrar el pedido #${pedido.numero}?`,
       mensaje:
-        'Va a la papelera: lo podés recuperar desde el filtro "Papelera".' +
+        t('admin.papeleraAviso') +
         (pedido.estado === 'cancelado' ? '' : ' Las prendas vuelven al stock.') +
         ` El cliente ${pedido.nombre} lo va a ver como cancelado.`,
       textoOk: 'Borrar',
@@ -126,6 +128,11 @@ export default function OrderCard({ pedido, onChanged }: Props) {
           <span className={`origin-badge origin-badge--${pedido.origen}`}>
             {pedido.origen === 'admin' ? 'Manual' : 'Web'}
           </span>
+          {pedido.metodo_pago === 'mercadopago' && (
+            <span className={`pago-badge pago-badge--${pedido.pago_estado ?? 'pendiente'}`}>
+              MP · {TEXTO_PAGO[pedido.pago_estado ?? 'pendiente']}
+            </span>
+          )}
           <span className="order-fecha">{fecha(pedido.created_at)}</span>
         </div>
         {/* En la papelera no se cambia el estado: primero hay que restaurarlo. */}
@@ -137,7 +144,7 @@ export default function OrderCard({ pedido, onChanged }: Props) {
         >
           {ESTADOS.map((es) => (
             <option key={es} value={es}>
-              {es}
+              {t(`estadoAdmin.${es}`)}
             </option>
           ))}
         </select>
@@ -170,9 +177,15 @@ export default function OrderCard({ pedido, onChanged }: Props) {
             <span>{money(i.precio * i.cantidad)}</span>
           </div>
         ))}
+        {Number(pedido.envio) > 0 && (
+          <div className="order-item">
+            <span>Envío</span>
+            <span>{money(Number(pedido.envio))}</span>
+          </div>
+        )}
         <div className="order-item total">
-          <span>Subtotal</span>
-          <strong>{money(pedido.subtotal)}</strong>
+          <span>Total</span>
+          <strong>{money(Number(pedido.total ?? pedido.subtotal))}</strong>
         </div>
       </div>
 

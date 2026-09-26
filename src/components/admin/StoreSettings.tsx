@@ -2,7 +2,16 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useDialog } from '../../context/DialogContext'
 import { useTienda } from '../../tienda'
-import type { ConfiguracionDB } from '../../tienda/tipos'
+import type { ConfiguracionDB, Ornamento, PresetTema } from '../../tienda/tipos'
+import { PRESETS } from '../../tienda/presets.mjs'
+import { t } from '../../i18n/textos'
+
+const ORNAMENTOS: { valor: Ornamento; texto: string }[] = [
+  { valor: 'festón', texto: 'Festón' },
+  { valor: 'onda', texto: 'Onda' },
+  { valor: 'línea', texto: 'Línea' },
+  { valor: 'ninguno', texto: 'Ninguno' },
+]
 
 // Límite para el logo: se sube tal cual (sin comprimir a JPEG, que rompería
 // la transparencia de un PNG/SVG), así que conviene que sea liviano.
@@ -38,6 +47,22 @@ export default function StoreSettings() {
   const [whatsapp, setWhatsapp] = useState(config.contacto.whatsapp)
   const [instagram, setInstagram] = useState(config.contacto.instagram)
   const [email, setEmail] = useState(config.contacto.email)
+  const [preset, setPreset] = useState<PresetTema>(config.tema.preset)
+  const [ornamento, setOrnamento] = useState<Ornamento>(config.tema.ornamento)
+  // Envío: texto libre en el input; vacío = a coordinar / nunca gratis.
+  const [envioCosto, setEnvioCosto] = useState(config.envio.costo === null ? '' : String(config.envio.costo))
+  const [envioGratis, setEnvioGratis] = useState(
+    config.envio.gratisDesde === null ? '' : String(config.envio.gratisDesde),
+  )
+
+  // Elegir un tema carga sus colores y ornamento (después se pueden retocar).
+  function elegirPreset(p: PresetTema) {
+    setPreset(p)
+    setColorPrimario(PRESETS[p].colorPrimario)
+    setColorFondo(PRESETS[p].colorFondo)
+    setColorTexto(PRESETS[p].colorTexto)
+    setOrnamento(PRESETS[p].ornamento)
+  }
 
   const [subiendo, setSubiendo] = useState(false)
   const [guardando, setGuardando] = useState(false)
@@ -48,7 +73,7 @@ export default function StoreSettings() {
     e.target.value = ''
     if (!file) return
     if (file.size > LOGO_MAX_BYTES) {
-      setError('El logo pesa más de 1 MB. Probá con una versión más liviana.')
+      setError(t('admin.logoPesado'))
       return
     }
     setSubiendo(true)
@@ -56,7 +81,7 @@ export default function StoreSettings() {
     try {
       setLogoUrl(await subirLogo(file))
     } catch {
-      setError('No se pudo subir el logo. Probá de nuevo.')
+      setError(t('admin.logoError'))
     } finally {
       setSubiendo(false)
     }
@@ -79,6 +104,10 @@ export default function StoreSettings() {
       whatsapp: vacioANull(whatsapp.replace(/\D/g, '')),
       instagram: instagram.trim().replace(/^@/, ''),
       email_contacto: vacioANull(email),
+      tema_preset: preset,
+      ornamento,
+      envio_costo: envioCosto.trim() === '' ? null : Math.max(0, Number(envioCosto) || 0),
+      envio_gratis_desde: envioGratis.trim() === '' ? null : Math.max(0, Number(envioGratis) || 0),
     }
 
     // .select() para detectar un update bloqueado por RLS: no da error, solo
@@ -93,8 +122,8 @@ export default function StoreSettings() {
     if (err || !data?.length) {
       setError(
         err?.message.includes('check')
-          ? 'Revisá los datos: el WhatsApp va solo con números (con código de país).'
-          : 'No se pudo guardar. ¿Corriste la migración 0014 en Supabase?',
+          ? t('admin.datosInvalidos')
+          : 'No se pudo guardar. ¿Corriste las migraciones 0014 a 0017 en Supabase?',
       )
       return
     }
@@ -107,7 +136,7 @@ export default function StoreSettings() {
       <div className="list-head">
         <div>
           <h1>Mi tienda</h1>
-          <p>Nombre, logo, colores y datos de contacto.</p>
+          <p>Nombre, logo, tema, contacto y envío.</p>
         </div>
       </div>
 
@@ -144,6 +173,34 @@ export default function StoreSettings() {
               )}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="settings-card">
+        <h2>Tema</h2>
+        <div className="preset-grid">
+          {(Object.keys(PRESETS) as PresetTema[]).map((p) => (
+            <button
+              type="button"
+              key={p}
+              className={preset === p ? 'preset-op activo' : 'preset-op'}
+              onClick={() => elegirPreset(p)}
+              style={{ background: PRESETS[p].colorFondo, color: PRESETS[p].colorTexto }}
+            >
+              <span className="preset-muestra" style={{ background: PRESETS[p].colorPrimario }} />
+              <span style={{ fontFamily: `'${PRESETS[p].fuenteTitulos}', serif` }}>{PRESETS[p].nombre}</span>
+            </button>
+          ))}
+        </div>
+        <div className="field">
+          <label>Adorno debajo del encabezado</label>
+          <select value={ornamento} onChange={(e) => setOrnamento(e.target.value as Ornamento)}>
+            {ORNAMENTOS.map((o) => (
+              <option key={o.valor} value={o.valor}>
+                {o.texto}
+              </option>
+            ))}
+          </select>
         </div>
       </section>
 
@@ -193,6 +250,33 @@ export default function StoreSettings() {
             placeholder="https://..."
           />
         </div>
+      </section>
+
+      <section className="settings-card">
+        <h2>Envío a domicilio</h2>
+        <div className="row2">
+          <div className="field">
+            <label>Costo ({config.region.moneda})</label>
+            <input
+              type="number"
+              min={0}
+              value={envioCosto}
+              onChange={(e) => setEnvioCosto(e.target.value)}
+              placeholder="A coordinar"
+            />
+          </div>
+          <div className="field">
+            <label>Gratis desde</label>
+            <input
+              type="number"
+              min={0}
+              value={envioGratis}
+              onChange={(e) => setEnvioGratis(e.target.value)}
+              placeholder="Nunca"
+            />
+          </div>
+        </div>
+        <p className="field-hint">Vacío = el envío se coordina aparte y no se cobra en la web.</p>
       </section>
 
       {error && <p className="form-error">{error}</p>}

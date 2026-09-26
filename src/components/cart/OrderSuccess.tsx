@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { money } from '../../lib/format'
 import { textoTienda } from '../../tienda'
-import type { CartItem } from '../../context/CartContext'
+import { nombreItem, type CartItem } from '../../context/CartContext'
+import { t } from '../../i18n/textos'
 
 interface Props {
   waHref: string
@@ -47,9 +48,9 @@ export default function OrderSuccess({ waHref, entrega, items, subtotal }: Props
         {/* Desglose de lo comprado, para que el cliente se lleve el detalle a la vista. */}
         <div className="success-detalle">
           {items.map((i) => (
-            <div className="success-linea" key={i.id}>
+            <div className="success-linea" key={i.clave}>
               <span>
-                {i.cantidad}x {i.nombre}
+                {i.cantidad}x {nombreItem(i)}
               </span>
               <span>{money(i.precio * i.cantidad)}</span>
             </div>
@@ -99,7 +100,7 @@ export default function OrderSuccess({ waHref, entrega, items, subtotal }: Props
         </div>
 
         <p className="success-text">
-          Escribinos por WhatsApp y coordinamos
+          {t('exito.coordinar')}
           {entrega === 'envio' ? ' el pago y el envío' : ' el pago y la entrega'}:
         </p>
 

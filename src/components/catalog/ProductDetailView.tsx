@@ -7,6 +7,7 @@ import { imagenesDe } from '../../lib/images'
 import { avisoStockBajo } from '../../lib/stock'
 import AddToCart from '../cart/AddToCart'
 import { useTienda } from '../../tienda'
+import { t } from '../../i18n/textos'
 
 // Contenido del detalle de un producto (galería + info). Es presentacional:
 // lo usa la página /producto/:id. No maneja overlay ni navegación.
@@ -16,7 +17,9 @@ export default function ProductDetailView({ producto }: { producto: ProductoConC
   const stockBajo = avisoStockBajo(producto.stock)
   // Con carrito: se compra desde acá y la consulta queda para "sin stock".
   // En modo muestrario (sin carrito): la consulta es siempre el CTA.
-  const { carrito } = useTienda().config.features
+  const { features, catalogo } = useTienda().config
+  const { carrito } = features
+  const atributos = catalogo.atributos.filter((a) => producto.atributos?.[a.clave]?.trim())
   const conConsulta = !disponible || !carrito
 
   // Carrusel de imágenes (D9): embla maneja swipe/touch; el strip de
@@ -85,6 +88,18 @@ export default function ProductDetailView({ producto }: { producto: ProductoConC
 
         {producto.descripcion && <p className="pd-desc">{producto.descripcion}</p>}
 
+        {/* Datos del rubro definidos en la config (solo los que tienen valor). */}
+        {atributos.length > 0 && (
+          <dl className="pd-atributos">
+            {atributos.map((a) => (
+              <div key={a.clave} style={{ display: 'contents' }}>
+                <dt>{a.etiqueta}</dt>
+                <dd>{producto.atributos?.[a.clave]}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+
         {/* CTA principal de ecommerce: agregar al carrito */}
         {carrito && <AddToCart producto={producto} />}
 
@@ -125,10 +140,10 @@ export default function ProductDetailView({ producto }: { producto: ProductoConC
         {/* TODO(owner-copy): revisar esta copy una vez definido el texto final. */}
         <p className="pd-note">
           {!disponible
-            ? 'Escribinos por WhatsApp o Instagram para consultar disponibilidad.'
+            ? t('producto.notaSinStock')
             : carrito
-              ? 'Agregalo al carrito y completá el pedido desde el checkout.'
-              : 'Escribinos por WhatsApp o Instagram para hacer tu pedido.'}
+              ? t('producto.notaCarrito')
+              : t('producto.notaMuestrario')}
         </p>
       </div>
     </div>

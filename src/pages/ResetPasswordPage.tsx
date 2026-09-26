@@ -6,6 +6,7 @@ import PasswordInput from '../components/common/PasswordInput'
 import { useAuth } from '../context/AuthContext'
 import '../styles/catalog.css'
 import '../styles/account.css'
+import { t } from '../i18n/textos'
 
 // Página que abre el link del mail de recuperación (/restablecer-contrasena).
 // Al cargar esta URL, supabase-js detecta el token del hash y crea una
@@ -73,7 +74,7 @@ export default function ResetPasswordPage() {
           {linkInvalido ? (
             <>
               <p className="account-intro">
-                Este link de recuperación no es válido o ya venció. Pedí uno nuevo desde "¿Olvidaste tu contraseña?" en la pantalla de ingreso.
+                {t('reset.linkInvalido')}
               </p>
               <Link className="btn btn-primary" to="/cuenta">
                 Volver a ingresar
@@ -83,7 +84,7 @@ export default function ResetPasswordPage() {
             <p className="account-intro">Verificando el link…</p>
           ) : (
             <form onSubmit={onSubmit} className="account-form">
-              <p className="account-intro">Elegí tu nueva contraseña.</p>
+              <p className="account-intro">{t('reset.intro')}</p>
               <div className="field">
                 <label>Contraseña nueva</label>
                 <PasswordInput
@@ -102,7 +103,7 @@ export default function ResetPasswordPage() {
                   minLength={6}
                   value={confirmar}
                   onChange={(e) => setConfirmar(e.target.value)}
-                  placeholder="Repetí la contraseña"
+                  placeholder={t('reset.repetir')}
                   autoComplete="new-password"
                 />
               </div>

@@ -19,18 +19,19 @@ import ManualOrderSheet from '../components/admin/ManualOrderSheet'
 import OrdersList from '../components/admin/OrdersList'
 import StoreSettings from '../components/admin/StoreSettings'
 import '../styles/admin.css'
+import { t } from '../i18n/textos'
 
 type Vista = 'productos' | 'pedidos' | 'tienda'
 
-// Chips de filtro de la pestaña Pedidos. El texto es el que usa la clienta en
-// "Mis pedidos", para hablar el mismo idioma en las dos puntas.
-const FILTROS: { valor: FiltroEstado; texto: string }[] = [
-  { valor: 'todos', texto: 'Todos' },
-  { valor: 'nuevo', texto: 'Nuevos' },
-  { valor: 'confirmado', texto: 'En preparación' },
-  { valor: 'entregado', texto: 'Entregados' },
-  { valor: 'cancelado', texto: 'Cancelados' },
-  { valor: 'eliminados', texto: 'Papelera' },
+// Chips de filtro de la pestaña Pedidos. Los estados usan las mismas etiquetas que el selector de la card
+// (diccionario: estadoAdmin.*), así una tienda los renombra en un solo lugar.
+const FILTROS: { valor: FiltroEstado; texto: () => string }[] = [
+  { valor: 'todos', texto: () => 'Todos' },
+  { valor: 'nuevo', texto: () => t('estadoAdmin.nuevo') },
+  { valor: 'confirmado', texto: () => t('estadoAdmin.confirmado') },
+  { valor: 'entregado', texto: () => t('estadoAdmin.entregado') },
+  { valor: 'cancelado', texto: () => t('estadoAdmin.cancelado') },
+  { valor: 'eliminados', texto: () => 'Papelera' },
 ]
 
 // Vista ADMINISTRADORA (mobile-first), protegida por login.
@@ -188,7 +189,7 @@ export default function AdminPage() {
             <div className="list-head">
               <div>
                 <h1>Productos</h1>
-                <p>Tocá un producto para editarlo.</p>
+                <p>{t('admin.productosAyuda')}</p>
               </div>
             </div>
 
@@ -216,7 +217,12 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <ProductList productos={productosFiltrados} onEditar={abrirEdicion} onChanged={refrescar} />
+            <ProductList
+              productos={productosFiltrados}
+              onEditar={abrirEdicion}
+              onChanged={refrescar}
+              ordenable={!busquedaProducto.trim() && categoriaProductoActiva === 'Todos' && !soloSinStock}
+            />
             <button className="fab" aria-label="Nuevo producto" onClick={abrirNuevo}>
               +
             </button>
@@ -228,7 +234,7 @@ export default function AdminPage() {
                 <h1>Pedidos</h1>
                 <p>
                   {conteos.todos === 0
-                    ? 'Los pedidos del muestrario aparecen acá.'
+                    ? 'Los pedidos de la tienda aparecen acá.'
                     : `${conteos.todos} en total · ${pedidosNuevos} sin gestionar.`}
                 </p>
               </div>
@@ -250,7 +256,7 @@ export default function AdminPage() {
                     className={filtroEstado === f.valor ? 'chip active' : 'chip'}
                     onClick={() => setFiltroEstado(f.valor)}
                   >
-                    {f.texto}
+                    {f.texto()}
                     <span className="chip-num">{conteos[f.valor]}</span>
                   </button>
                 ))}

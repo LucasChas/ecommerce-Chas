@@ -23,6 +23,8 @@ export interface ReciboData {
   nombre: string;
   items: ReciboItem[];
   subtotal: number;
+  /** Costo de envío (0 si no hay o es gratis). */
+  envio: number;
   entrega: "envio" | "coordinar";
 }
 
@@ -150,7 +152,7 @@ export function renderRecibo(
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
                   <tr>
                     <td style="padding:12px 0;font-size:15px;color:#222;font-weight:bold;text-align:right;">
-                      Total: ${formatMoney(data.subtotal)}
+                      ${data.envio > 0 ? `Envío: ${formatMoney(data.envio)}<br />` : ""}Total: ${formatMoney(data.subtotal + data.envio)}
                     </td>
                   </tr>
                 </table>

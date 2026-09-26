@@ -14,7 +14,7 @@ interface Props {
 export default function SearchBar({
   value,
   onChange,
-  placeholder = 'Buscar en el muestrario...',
+  placeholder = 'Buscar productos...',
   className,
 }: Props) {
   if (className) {

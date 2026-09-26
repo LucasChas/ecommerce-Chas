@@ -16,7 +16,7 @@
 // de Node (ej. el generador de plantillas de mail). El tipo lo valida igual.
 // ============================================================================
 
-/** @type {import('../src/tienda/tipos').TiendaConfig} */
+/** @type {import('../src/tienda/tipos').TiendaConfigArchivo} */
 const tienda = {
   nombre: 'Mi Tienda',
   eslogan: 'Productos seleccionados',
@@ -37,24 +37,46 @@ const tienda = {
     prefijoWhatsapp: '549', // se antepone a teléfonos cargados sin código de país
   },
 
+  // Tema: un preset ('calido' | 'minimal' | 'oscuro' | 'vibrante') y, si
+  // hace falta, valores puntuales encima. null = el valor del preset.
   tema: {
-    colorPrimario: '#B08F55',
-    colorFondo: '#F8F1E1',
-    colorTexto: '#3B2F22',
-    fuenteTitulos: 'Fraunces',
-    fuenteTexto: 'Inter',
-    ornamento: 'festón', // 'festón' | 'ninguno'
+    preset: 'calido',
+    colorPrimario: null, // ej. '#B08F55'
+    colorFondo: null,
+    colorTexto: null,
+    fuenteTitulos: null, // familia de Google Fonts, ej. 'Fraunces'
+    fuenteTexto: null,
+    ornamento: null, // 'festón' | 'onda' | 'línea' | 'ninguno'
   },
 
   features: {
     carrito: true,
     cuentas: true,
     pedidosManuales: true,
+    mercadoPago: false, // requiere las Edge Functions de MP (docs/INSTALACION.md)
+  },
+
+  // Envío a domicilio. También se edita desde el admin → "Mi tienda".
+  envio: {
+    costo: null, // null = a coordinar; un número = costo fijo
+    gratisDesde: null, // ej. 50000 → gratis desde ese subtotal
   },
 
   catalogo: {
     stockBajo: 3,
     placeholderDescripcion: 'Material, medidas, detalles...',
+    // Nombre de las variantes en este rubro: 'Talle', 'Color', 'Tamaño'...
+    etiquetaVariante: 'Opción',
+    // Datos extra de cada producto (aparecen en el admin y en la ficha).
+    // Ej. ropa: [{ clave: 'material', etiqueta: 'Material' }, { clave: 'cuidados', etiqueta: 'Cuidados' }]
+    atributos: [],
+  },
+
+  idioma: {
+    trato: 'vos', // 'vos' | 'tu'
+    // Pisar cualquier texto de src/i18n/textos.ts, ej.:
+    // textos: { 'estado.nuevo': 'Recibido', 'estadoAdmin.confirmado': 'Armando' },
+    textos: {},
   },
 
   legal: {

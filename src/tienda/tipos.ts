@@ -7,7 +7,43 @@
 //                                  (pisa a la anterior, sin redeploy).
 // ============================================================================
 
-export type Ornamento = 'festón' | 'ninguno'
+export type Ornamento = 'festón' | 'onda' | 'línea' | 'ninguno'
+
+export type PresetTema = 'calido' | 'minimal' | 'oscuro' | 'vibrante'
+
+/** Tema tal como se escribe en tienda.config.mjs: un preset + lo que se quiera pisar. */
+export interface TemaArchivo {
+  preset: PresetTema
+  colorPrimario?: string | null
+  colorFondo?: string | null
+  colorTexto?: string | null
+  /** Familia de Google Fonts para títulos. */
+  fuenteTitulos?: string | null
+  /** Familia de Google Fonts para el resto del texto. */
+  fuenteTexto?: string | null
+  /** Elemento decorativo debajo del header. */
+  ornamento?: Ornamento | null
+}
+
+/** Tema final (preset + overrides), el que usa la app. */
+export interface TemaResuelto {
+  preset: PresetTema
+  colorPrimario: string
+  colorFondo: string
+  colorTexto: string
+  fuenteTitulos: string
+  fuenteTexto: string
+  ornamento: Ornamento
+  /** Tokens CSS extra del preset (radios, tarjetas, sombras). */
+  variables: Record<string, string>
+}
+
+export interface AtributoProducto {
+  /** Clave interna (sin espacios), ej. "material". */
+  clave: string
+  /** Etiqueta visible, ej. "Material". */
+  etiqueta: string
+}
 
 export interface TiendaConfig {
   /** Nombre comercial. Aparece en header, títulos, mails y mensajes. */
@@ -44,17 +80,7 @@ export interface TiendaConfig {
     prefijoWhatsapp: string
   }
 
-  tema: {
-    colorPrimario: string
-    colorFondo: string
-    colorTexto: string
-    /** Familia de Google Fonts para títulos. */
-    fuenteTitulos: string
-    /** Familia de Google Fonts para el resto del texto. */
-    fuenteTexto: string
-    /** Elemento decorativo debajo del header. */
-    ornamento: Ornamento
-  }
+  tema: TemaResuelto
 
   features: {
     /** Carrito + checkout + pedidos online. false = solo muestrario (consulta por WhatsApp). */
@@ -63,6 +89,18 @@ export interface TiendaConfig {
     cuentas: boolean
     /** Carga manual de pedidos desde el admin (ventas por WhatsApp, local, etc.). */
     pedidosManuales: boolean
+    /**
+     * Pago online con MercadoPago en el checkout. Requiere desplegar las Edge
+     * Functions crear-preferencia-mp y webhook-mercadopago (ver docs).
+     */
+    mercadoPago: boolean
+  }
+
+  envio: {
+    /** Costo fijo del envío a domicilio. null = "a coordinar" (no se cobra en la web). */
+    costo: number | null
+    /** Envío gratis cuando el subtotal llega a este monto. null = nunca. */
+    gratisDesde: number | null
   }
 
   catalogo: {
@@ -70,6 +108,26 @@ export interface TiendaConfig {
     stockBajo: number
     /** Placeholder del campo descripción en el admin (orienta según el rubro). */
     placeholderDescripcion: string
+    /**
+     * Cómo se llaman las variantes de un producto en este rubro (ej. "Talle",
+     * "Color", "Tamaño"). Se usa en la ficha ("Elegí un talle") y en el admin.
+     */
+    etiquetaVariante: string
+    /**
+     * Datos extra de los productos de este rubro. Cada uno aparece como campo
+     * en el admin y como fila en la ficha del producto (si tiene valor).
+     */
+    atributos: AtributoProducto[]
+  }
+
+  idioma: {
+    /** Trato de la interfaz: 'vos' (rioplatense) o 'tu'. */
+    trato: 'vos' | 'tu'
+    /**
+     * Pisa cualquier texto del diccionario (src/i18n/textos.ts), ej.
+     * { 'estado.nuevo': 'Recibido' }.
+     */
+    textos?: Partial<Record<import('../i18n/textos').ClaveTexto, string>>
   }
 
   legal: {
@@ -104,4 +162,15 @@ export interface ConfiguracionDB {
   whatsapp: string | null
   instagram: string | null
   email_contacto: string | null
+  // 0016
+  envio_costo?: number | null
+  envio_gratis_desde?: number | null
+  // 0017
+  tema_preset?: PresetTema | null
+  ornamento?: Ornamento | null
+}
+
+/** Config tal como se escribe en tienda/tienda.config.mjs. */
+export interface TiendaConfigArchivo extends Omit<TiendaConfig, 'tema'> {
+  tema: TemaArchivo
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import type { ProductoConCategoria } from '../types'
+import { SELECT_PRODUCTO, aplanarProducto } from '../lib/productos'
 
 // Trae los productos con el nombre de su categoría resuelto y se mantiene
 // actualizado en tiempo real: cualquier alta/edición/baja de producto o
@@ -17,23 +18,14 @@ export function useProducts() {
   const fetchProductos = useCallback(async () => {
     const { data, error } = await supabase
       .from('productos')
-      .select('*, categorias(nombre)')
+      .select(SELECT_PRODUCTO)
+      .order('orden', { ascending: true })
       .order('created_at', { ascending: false })
 
     if (error) {
       setError(error.message)
     } else {
-      // Aplanamos el join: categorias.nombre -> categoria_nombre
-      const filas = (data ?? []).map((row) => {
-        const { categorias, ...resto } = row as Record<string, unknown> & {
-          categorias: { nombre: string } | null
-        }
-        return {
-          ...(resto as unknown as ProductoConCategoria),
-          categoria_nombre: categorias?.nombre ?? null,
-        }
-      })
-      setProductos(filas)
+      setProductos((data ?? []).map(aplanarProducto))
       setError(null)
     }
     setLoading(false)
@@ -53,6 +45,11 @@ export function useProducts() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'categorias' },
+        fetchProductos,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'producto_variantes' },
         fetchProductos,
       )
       .subscribe()

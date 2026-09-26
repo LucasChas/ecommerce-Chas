@@ -23,6 +23,7 @@ export function waLink(producto: ProductoConCategoria): string {
 // Ítem mínimo para armar el mensaje de pedido.
 interface ItemPedido {
   nombre: string
+  variante?: string | null
   precio: number
   cantidad: number
 }
@@ -44,9 +45,13 @@ export function waPedidoConfirmadoLink(
   items: ItemPedido[],
   subtotal: number,
   datos: DatosPedido,
+  envio: number | null = 0,
 ): string {
   const lineas = items
-    .map((i) => `• ${i.cantidad}x ${i.nombre} — ${money(i.precio * i.cantidad)}`)
+    .map((i) => {
+      const nombre = i.variante ? `${i.nombre} (${i.variante})` : i.nombre
+      return `• ${i.cantidad}x ${nombre} — ${money(i.precio * i.cantidad)}`
+    })
     .join('\n')
   const entrega =
     datos.entrega === 'envio'
@@ -56,6 +61,7 @@ export function waPedidoConfirmadoLink(
     textoTienda('whatsappPedido', { nombre: datos.nombre, numero }),
     lineas,
     `Subtotal: ${money(subtotal)}`,
+    ...(envio ? [`Envío: ${money(envio)}`, `Total: ${money(subtotal + envio)}`] : []),
     entrega,
   ]
   if (datos.notas) partes.push(`Notas: ${datos.notas}`)

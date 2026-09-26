@@ -1033,3 +1033,87 @@
     max-width: none;
   }
 }
+
+/* ---------- Selector de variantes (ficha del producto) ---------- */
+.variantes {
+  margin-top: 6px;
+}
+.variantes-label {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+.variantes-label strong {
+  color: var(--color-texto);
+  font-weight: 600;
+}
+.variantes-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.variante {
+  min-width: 44px;
+  padding: 8px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--color-borde);
+  background: var(--color-tarjeta);
+  color: var(--color-texto);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.variante.activa {
+  border-color: var(--color-primario);
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+}
+.variante:disabled {
+  opacity: 0.45;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* ---------- Resultado del pago (vuelta de MercadoPago) ---------- */
+.pago-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.pago-icono {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: var(--color-primario-suave);
+  color: var(--color-primario-hover);
+}
+.pago-aprobado .pago-icono {
+  background: var(--color-exito-suave);
+  color: var(--color-exito);
+}
+.pago-rechazado .pago-icono {
+  background: var(--color-peligro-suave);
+  color: var(--color-peligro);
+}
+.pago-estado-txt {
+  margin: 0;
+  color: var(--color-texto-suave);
+  text-align: center;
+}
+.pago-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 12px;
+}
+.pago-acciones .btn {
+  width: auto;
+  padding-inline: 22px;
+}

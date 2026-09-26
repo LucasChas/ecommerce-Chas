@@ -46,6 +46,8 @@ export default function CatalogPage() {
   const visibles = useMemo(() => {
     const term = busqueda.trim().toLowerCase()
     return productos.filter((p) => {
+      // Los ocultos ya los filtra la base (RLS), salvo que quien mira sea admin.
+      if (p.activo === false) return false
       const coincideCat =
         categoriaActiva === 'Todos' || p.categoria_nombre === categoriaActiva
       const coincideTexto =
@@ -79,7 +81,7 @@ export default function CatalogPage() {
         {loading ? (
           <div className="loading-state">
             <span className="loading-spinner" aria-hidden="true" />
-            Cargando muestrario…
+            Cargando productos…
           </div>
         ) : (
           <ProductGrid productos={visibles} />

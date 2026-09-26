@@ -10,14 +10,18 @@
 
 | Fase | Estado |
 |---|---|
-| 1. Desacoplar | ✅ Hecha: `tienda/tienda.config.mjs` + `src/tienda/` (provider y hook), tokens CSS por función con derivados `color-mix()`, `money()` y fechas según la región, textos de marca configurables, legales con variables, logo de texto por defecto, sin menciones a la marca original en `src/`. Pendiente: diccionario completo de textos (trato vos/tú, género). |
-| 2. Admin "Mi tienda" | ✅ Hecha: tabla `configuracion` (migración 0014) + pestaña en el panel (nombre, eslogan, logo, colores con vista previa, contacto, URL). |
-| 3. Instalación | ✅ Parcial: `supabase/instalar.sql` (generado), `promover_admin()`, `pnpm nueva-tienda`, `pnpm emails`, `docs/INSTALACION.md`. Pendiente: Supabase CLI y `seed.sql` por rubro. |
-| 4. Feature flags | ✅ Parcial: `carrito` (modo muestrario), `cuentas`, `pedidosManuales`. |
-| 5. Presets de tema | Pendiente (hoy: 3 colores + fuentes + ornamento festón/ninguno). |
-| 6. Rubros | Pendiente. |
-| 7. Pagos y envíos | Pendiente. |
+| 1. Desacoplar | ✅ `tienda/` + `src/tienda/` (provider, hook, presets), tokens CSS por función, moneda/locale/teléfono por región, diccionario de textos con trato vos/tú (`src/i18n/textos.ts`), legales con variables. `pnpm verificar` controla que `src/` no tenga datos de la tienda. |
+| 2. Admin "Mi tienda" | ✅ Marca, logo, tema, colores con vista previa, ornamento, contacto y envío (migraciones 0014 y 0017). |
+| 3. Instalación | ✅ `instalar.sql` generado, `promover_admin()`, `pnpm nueva-tienda` (rubro, tema, trato), seeds por rubro, scripts `db:*` / `fn:*` para Supabase CLI, `docs/INSTALACION.md`, `docs/MANUAL_ADMIN.md`. |
+| 4. Feature flags | ✅ `carrito` (modo muestrario), `cuentas`, `pedidosManuales`, `mercadoPago`. |
+| 5. Presets de tema | ✅ Cálido, minimal, oscuro y vibrante + ornamentos festón / onda / línea / ninguno. |
+| 6. Rubros | ✅ Variantes con stock propio, atributos por rubro, productos ocultos, orden manual por arrastre, etiquetas de estado configurables (migración 0015). |
+| 7. Pagos y envíos | ✅ Envío fijo con gratis desde un monto y MercadoPago Checkout Pro con webhook firmado (migración 0016, Edge Functions). Envío por zonas y cotización con correos: pendiente. |
+| §7 Mantenimiento | ✅ `CHANGELOG.md`, versión 1.0.0, CI (build, verificación, tests de funciones, instalación de la base con pruebas de reglas de negocio). |
 
+Pendientes conocidos: envío por zona/CP y cotización con Andreani / Correo
+Argentino; cancelación automática de pedidos con pago rechazado o abandonado
+(hoy la dueña los cancela desde el panel); multi-tenant (§2, opción B).
 ---
 
 ## 0. Resumen en una línea

@@ -1,15 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tienda from './tienda/tienda.config.mjs'
-
-// Arma el <link> de Google Fonts con las dos familias de la config.
-function googleFontsHref(): string {
-  const familias = [...new Set([tienda.tema.fuenteTitulos, tienda.tema.fuenteTexto])]
-  const params = familias
-    .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@400;500;600;700`)
-    .join('&')
-  return `https://fonts.googleapis.com/css2?${params}&display=swap`
-}
+import { googleFontsHref, resolverTema } from './src/tienda/presets.mjs'
 
 // Vite estándar para React, más:
 //  - publicDir en tienda/public: logo, favicon y archivos públicos son de
@@ -29,7 +21,7 @@ export default defineConfig({
           html
             .replace(/%TIENDA_NOMBRE%/g, tienda.nombre)
             .replace(/%TIENDA_ESLOGAN%/g, tienda.eslogan)
-            .replace(/%TIENDA_FUENTES%/g, googleFontsHref()),
+            .replace(/%TIENDA_FUENTES%/g, googleFontsHref(resolverTema(tienda.tema))),
       },
     },
   ],

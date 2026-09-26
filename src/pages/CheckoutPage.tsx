@@ -2,23 +2,27 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import Scallop from '../components/Scallop'
-import { useCart, type CartItem } from '../context/CartContext'
+import { useCart, nombreItem, type CartItem } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import { money } from '../lib/format'
 import { waPedidoConfirmadoLink, type DatosPedido } from '../lib/config'
+import { costoEnvio } from '../lib/envio'
+import { useTienda } from '../tienda'
+import type { MetodoPago } from '../types'
 import OrderSuccess from '../components/cart/OrderSuccess'
 import '../styles/catalog.css'
 import '../styles/cart.css'
+import { t } from '../i18n/textos'
 
 interface PedidoConfirmado {
   numero: number
   items: CartItem[]
   subtotal: number
+  envio: number | null
   datos: DatosPedido
 }
 
-type MetodoPago = 'whatsapp' | 'mercadopago'
 
 // Checkout como INVITADA (/checkout): datos de contacto y entrega, método de
 // pago, revalidación de stock/precios contra la base y registro del pedido.
@@ -34,7 +38,10 @@ export default function CheckoutPage() {
   const [localidad, setLocalidad] = useState('')
   const [cp, setCp] = useState('')
   const [notas, setNotas] = useState('')
-  const [metodoPago, setMetodoPago] = useState<MetodoPago>('whatsapp')
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>('coordinar')
+  const { features } = useTienda().config
+  // Envío estimado para el resumen (el importe real lo calcula la base).
+  const envio = costoEnvio(subtotal, entrega)
 
   const [enviando, setEnviando] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -48,38 +55,56 @@ export default function CheckoutPage() {
     setTelefono((t) => t || perfil.telefono || '')
   }, [perfil])
 
-  // Revalida el carrito contra la base: precios vigentes y stock disponible.
+  // Revalida el carrito contra la base: precios vigentes y stock disponible
+  // (el de la variante, si la línea tiene una).
   async function revalidarCarrito(): Promise<{ corregidos: CartItem[]; cambios: string[] }> {
-    const ids = items.map((i) => i.id)
+    const ids = [...new Set(items.map((i) => i.id))]
     const { data, error } = await supabase
       .from('productos')
-      .select('id, nombre, precio, stock')
+      .select('id, nombre, precio, stock, producto_variantes(id, nombre, stock)')
       .in('id', ids)
     if (error) throw new Error(error.message)
 
-    const porId = new Map((data ?? []).map((p) => [p.id, p]))
+    type Fila = {
+      id: string
+      precio: number
+      stock: number
+      producto_variantes: { id: string; stock: number }[] | null
+    }
+    const porId = new Map(((data ?? []) as Fila[]).map((p) => [p.id, p]))
     const cambios: string[] = []
     const corregidos: CartItem[] = []
 
     for (const item of items) {
       const actual = porId.get(item.id)
-      if (!actual || actual.stock <= 0) {
-        cambios.push(`"${item.nombre}" ya no está disponible y se quitó del carrito.`)
+      const nombre = nombreItem(item)
+      const variantes = actual?.producto_variantes ?? []
+      // Una línea sin variante de un producto que ahora tiene variantes ya no
+      // se puede comprar así: hay que volver a elegir la opción en la ficha.
+      if (actual && !item.variante_id && variantes.length > 0) {
+        cambios.push(`"${nombre}" ahora tiene opciones: elegila de nuevo desde el producto.`)
+        continue
+      }
+      const stock = item.variante_id
+        ? variantes.find((v) => v.id === item.variante_id)?.stock ?? 0
+        : actual?.stock ?? 0
+      if (!actual || stock <= 0) {
+        cambios.push(`"${nombre}" ya no está disponible y se quitó del carrito.`)
         continue
       }
       let cantidad = item.cantidad
-      if (cantidad > actual.stock) {
-        cantidad = actual.stock
+      if (cantidad > stock) {
+        cantidad = stock
         cambios.push(
-          actual.stock === 1
-            ? `"${item.nombre}": queda 1 unidad (ajustamos la cantidad).`
-            : `"${item.nombre}": quedan ${actual.stock} unidades (ajustamos la cantidad).`,
+          stock === 1
+            ? `"${nombre}": queda 1 unidad (ajustamos la cantidad).`
+            : `"${nombre}": quedan ${stock} unidades (ajustamos la cantidad).`,
         )
       }
       if (actual.precio !== item.precio) {
-        cambios.push(`"${item.nombre}": el precio se actualizó a ${money(actual.precio)}.`)
+        cambios.push(`"${nombre}": el precio se actualizó a ${money(actual.precio)}.`)
       }
-      corregidos.push({ ...item, precio: actual.precio, stock: actual.stock, cantidad })
+      corregidos.push({ ...item, precio: actual.precio, stock, cantidad })
     }
     return { corregidos, cambios }
   }
@@ -96,7 +121,7 @@ export default function CheckoutPage() {
         setAviso(
           'Actualizamos tu carrito con los datos vigentes:\n• ' +
             cambios.join('\n• ') +
-            '\nRevisá el resumen y volvé a confirmar.',
+            '\n' + t('checkout.revisar'),
         )
         return
       }
@@ -127,17 +152,37 @@ export default function CheckoutPage() {
         p_notas: datos.notas ?? null,
         p_items: corregidos.map((i) => ({
           id: i.id,
-          nombre: i.nombre,
-          precio: i.precio,
+          variante_id: i.variante_id ?? null,
           cantidad: i.cantidad,
         })),
         p_subtotal: subtotalFinal,
+        p_metodo_pago: metodoPago,
       })
       if (error) throw new Error(error.message)
 
-      // TODO (fase MercadoPago): si metodoPago === 'mercadopago', acá se llama a
-      // la Edge Function que crea la preferencia y se redirige al checkout de MP.
-      setConfirmado({ numero: numero as number, items: corregidos, subtotal: subtotalFinal, datos })
+      if (metodoPago === 'mercadopago') {
+        // El pedido ya está registrado (y el stock reservado): pedimos el link
+        // de pago a la Edge Function y vamos a MercadoPago. Al volver, la
+        // página /pago/resultado muestra cómo quedó.
+        vaciar()
+        const { data, error: errPago } = await supabase.functions.invoke('crear-preferencia-mp', {
+          body: { numero },
+        })
+        if (errPago || !data?.url) {
+          setError(t('checkout.errorPago', { numero: numero as number }))
+          return
+        }
+        window.location.href = data.url as string
+        return
+      }
+
+      setConfirmado({
+        numero: numero as number,
+        items: corregidos,
+        subtotal: subtotalFinal,
+        envio: costoEnvio(subtotalFinal, entrega),
+        datos,
+      })
       vaciar()
     } catch (err) {
       // crear_pedido devuelve mensajes ya redactados para la clienta (falta de
@@ -145,7 +190,7 @@ export default function CheckoutPage() {
       setError(
         err instanceof Error
           ? err.message
-          : 'No pudimos registrar el pedido. Probá de nuevo en un momento.',
+          : t('checkout.errorRegistrar'),
       )
     } finally {
       setEnviando(false)
@@ -171,7 +216,7 @@ export default function CheckoutPage() {
             Tu carrito está vacío.
             <br />
             <Link className="pp-back" to="/">
-              ← Volver al muestrario
+              ← Volver a la tienda
             </Link>
           </div>
         ) : (
@@ -230,7 +275,13 @@ export default function CheckoutPage() {
                           <input type="text" required value={cp} onChange={(e) => setCp(e.target.value)} placeholder="CP" />
                         </div>
                       </div>
-                      <p className="cart-note">El costo del envío se coordina al confirmar el pedido.</p>
+                      <p className="cart-note">
+                        {envio === null
+                          ? 'El costo del envío se coordina al confirmar el pedido.'
+                          : envio === 0
+                            ? '¡El envío es gratis!'
+                            : `Envío a domicilio: ${money(envio)}.`}
+                      </p>
                     </div>
                   )}
                 </section>
@@ -240,22 +291,27 @@ export default function CheckoutPage() {
                     <span className="paso">3</span> Pago
                   </h2>
                   <div className="pago-opciones">
-                    <label className={metodoPago === 'whatsapp' ? 'pago-op active' : 'pago-op'}>
-                      <input type="radio" name="pago" checked={metodoPago === 'whatsapp'} onChange={() => setMetodoPago('whatsapp')} />
+                    <label className={metodoPago === 'coordinar' ? 'pago-op active' : 'pago-op'}>
+                      <input type="radio" name="pago" checked={metodoPago === 'coordinar'} onChange={() => setMetodoPago('coordinar')} />
                       <div className="pago-txt">
                         <strong>Coordinar por WhatsApp</strong>
-                        <span>Acordás el pago (efectivo, transferencia…) al confirmar el pedido.</span>
+                        <span>{t('checkout.pagoCoordinar')}</span>
                       </div>
                     </label>
-                    <label className="pago-op disabled" title="Lo activamos muy pronto">
-                      <input type="radio" name="pago" disabled />
-                      <div className="pago-txt">
-                        <strong>
-                          Pagar online <span className="badge-pronto">Muy pronto</span>
-                        </strong>
-                        <span>Con MercadoPago: tarjeta, débito o dinero en cuenta.</span>
-                      </div>
-                    </label>
+                    {features.mercadoPago && (
+                      <label className={metodoPago === 'mercadopago' ? 'pago-op active' : 'pago-op'}>
+                        <input
+                          type="radio"
+                          name="pago"
+                          checked={metodoPago === 'mercadopago'}
+                          onChange={() => setMetodoPago('mercadopago')}
+                        />
+                        <div className="pago-txt">
+                          <strong>Pagar online</strong>
+                          <span>Con MercadoPago: tarjeta, débito o dinero en cuenta.</span>
+                        </div>
+                      </label>
+                    )}
                   </div>
                 </section>
 
@@ -281,12 +337,12 @@ export default function CheckoutPage() {
                   <h2 className="checkout-h">Tu pedido</h2>
                   <div className="summary-items">
                     {items.map((i) => (
-                      <div className="summary-item" key={i.id}>
+                      <div className="summary-item" key={i.clave}>
                         <div className="summary-thumb">
-                          <img src={i.imagen} alt={i.nombre} />
+                          <img src={i.imagen} alt={nombreItem(i)} />
                           <span className="summary-qty">{i.cantidad}</span>
                         </div>
-                        <span className="summary-name">{i.nombre}</span>
+                        <span className="summary-name">{nombreItem(i)}</span>
                         <span className="summary-total">{money(i.precio * i.cantidad)}</span>
                       </div>
                     ))}
@@ -295,13 +351,15 @@ export default function CheckoutPage() {
                     <span>Subtotal</span>
                     <span>{money(subtotal)}</span>
                   </div>
-                  <div className="summary-linea muted">
+                  <div className={envio ? 'summary-linea' : 'summary-linea muted'}>
                     <span>Envío</span>
-                    <span>a coordinar</span>
+                    <span>
+                      {entrega !== 'envio' ? '—' : envio === null ? 'a coordinar' : envio === 0 ? 'gratis' : money(envio)}
+                    </span>
                   </div>
                   <div className="summary-linea total">
                     <span>Total</span>
-                    <strong>{money(subtotal)}</strong>
+                    <strong>{money(subtotal + (envio ?? 0))}</strong>
                   </div>
                 </div>
               </aside>
@@ -314,13 +372,14 @@ export default function CheckoutPage() {
       {confirmado && (
         <OrderSuccess
           items={confirmado.items}
-          subtotal={confirmado.subtotal}
+          subtotal={confirmado.subtotal + (confirmado.envio ?? 0)}
           entrega={confirmado.datos.entrega}
           waHref={waPedidoConfirmadoLink(
             confirmado.numero,
             confirmado.items,
             confirmado.subtotal,
             confirmado.datos,
+            confirmado.envio,
           )}
         />
       )}

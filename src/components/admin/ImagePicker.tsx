@@ -16,6 +16,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
 import ImageZoom from '../common/ImageZoom'
+import { t } from '../../i18n/textos'
 
 // Imagen ya guardada en Storage (URL) o imagen nueva elegida del teléfono
 // (todavía sin subir). `key` es estable por ítem: lo usa dnd-kit para
@@ -105,7 +106,7 @@ export default function ImagePicker({ items, onChange, onAddFiles }: Props) {
       </DndContext>
 
       {!hayImagenes && (
-        <p className="img-hint">Elegí una o varias fotos de la galería del teléfono.</p>
+        <p className="img-hint">{t('admin.fotosAyuda')}</p>
       )}
 
       {zoomSrc && (

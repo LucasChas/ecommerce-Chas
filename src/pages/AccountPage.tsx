@@ -7,6 +7,7 @@ import PasswordInput from '../components/common/PasswordInput'
 import { useAuth } from '../context/AuthContext'
 import '../styles/catalog.css'
 import '../styles/account.css'
+import { t } from '../i18n/textos'
 
 // Página de cuenta de clientas (/cuenta): ingresar o crear cuenta. Al entrar,
 // redirige a "next" (ej. el checkout desde el que vino) o a "Mis pedidos".
@@ -42,7 +43,7 @@ export default function AccountPage() {
         if (error) setError(error)
         // Mismo aviso exista o no la cuenta: Supabase no distingue por error
         // para no revelar qué emails están registrados.
-        else setAviso('Si ese email tiene una cuenta, te mandamos un link para restablecer la contraseña. Revisá también la carpeta de spam.')
+        else setAviso(t('cuenta.avisoRecuperar'))
       } else if (modo === 'ingresar') {
         const { error } = await ingresar(email, password)
         if (error) setError(error)
@@ -60,11 +61,9 @@ export default function AccountPage() {
           // paso menos que un texto suelto, y no le promete una recuperación
           // de contraseña que la app todavía no tiene.
           setModo('ingresar')
-          setAviso('Ese email ya tiene una cuenta. Ingresá tu contraseña para entrar.')
+          setAviso(t('cuenta.yaRegistrado'))
         } else if (necesitaConfirmar)
-          setAviso(
-            'Ya casi está: te mandamos un email para confirmar tu cuenta. Abrilo y tocá el enlace para poder ingresar. ¿No lo ves? Revisá también la carpeta de spam.',
-          )
+          setAviso(t('cuenta.confirmarEmail'))
         else navigate(next, { replace: true })
       }
     } finally {
@@ -98,10 +97,10 @@ export default function AccountPage() {
 
           <p className="account-intro">
             {modo === 'ingresar'
-              ? 'Ingresá para ver tus pedidos y finalizar tu compra.'
+              ? t('cuenta.introIngresar')
               : modo === 'registrar'
                 ? textoTienda('registroBajada')
-                : 'Ingresá tu email y te mandamos un link para elegir una contraseña nueva.'}
+                : t('cuenta.introRecuperar')}
           </p>
 
           <form onSubmit={onSubmit} className="account-form">
@@ -164,7 +163,7 @@ export default function AccountPage() {
             </button>
           ) : (
             <Link className="pp-back" to="/">
-              ← Volver al muestrario
+              ← Volver a la tienda
             </Link>
           )}
         </div>

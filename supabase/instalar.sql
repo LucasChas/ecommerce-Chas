@@ -2,7 +2,7 @@
 -- INSTALACIÓN COMPLETA (archivo generado con `pnpm sql:instalacion`, no editar)
 --
 -- Pegá TODO este archivo en Supabase → SQL Editor → New query y ejecutá.
--- Incluye, en orden: 0001_init.sql, 0002_imagenes_multiples.sql, 0003_pedidos.sql, 0004_crear_pedido.sql, 0005_cuentas.sql, 0006_stock_y_precios.sql, 0007_borrar_pedidos.sql, 0008_devolver_stock.sql, 0009_papelera_pedidos.sql, 0010_pedido_eliminado_visible.sql, 0011_slug_productos.sql, 0012_email_pedido.sql, 0013_origen_pedido.sql, 0014_configuracion.sql
+-- Incluye, en orden: 0001_init.sql, 0002_imagenes_multiples.sql, 0003_pedidos.sql, 0004_crear_pedido.sql, 0005_cuentas.sql, 0006_stock_y_precios.sql, 0007_borrar_pedidos.sql, 0008_devolver_stock.sql, 0009_papelera_pedidos.sql, 0010_pedido_eliminado_visible.sql, 0011_slug_productos.sql, 0012_email_pedido.sql, 0013_origen_pedido.sql, 0014_configuracion.sql, 0015_rubros.sql, 0016_envio_y_pagos.sql, 0017_tema.sql
 --
 -- Después: creá tu usuario en Authentication → Users y corré
 --   select public.promover_admin('tu@email.com');
@@ -1267,3 +1267,425 @@ end;
 $$;
 
 revoke all on function public.promover_admin(text) from public, anon, authenticated;
+
+-- >>>>>>>>>>>>>>>>>>>> 0015_rubros.sql <<<<<<<<<<<<<<<<<<<<
+
+-- ============================================================================
+-- Migración 0015: productos para cualquier rubro
+--
+--   1) productos.activo    → ocultar un producto del catálogo sin borrarlo.
+--   2) productos.orden     → orden manual del catálogo (arrastrar en el admin).
+--   3) productos.atributos → datos propios del rubro (Material, Medidas...),
+--                            definidos por tienda en tienda.config.mjs.
+--   4) producto_variantes  → opciones con stock propio (Talle, Color...).
+--
+-- Variantes y stock — la idea central:
+--   Si un producto tiene variantes, su columna "stock" pasa a ser la SUMA del
+--   stock de sus variantes y la mantiene un trigger. Así todo lo que ya usa
+--   "stock > 0" para saber si hay disponibilidad (catálogo, badges, admin)
+--   sigue funcionando sin cambios. Para evitar que se desincronice, un
+--   producto con variantes no acepta cambios directos de stock: se edita el
+--   de cada variante.
+--
+-- Cómo correrla: pegá TODO este archivo en el SQL Editor de Supabase y
+-- ejecutá. Es idempotente.
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1-3) Columnas nuevas de productos
+-- ----------------------------------------------------------------------------
+alter table public.productos add column if not exists activo boolean not null default true;
+alter table public.productos add column if not exists orden int not null default 0;
+alter table public.productos add column if not exists atributos jsonb not null default '{}'::jsonb;
+
+create index if not exists productos_activo_orden_idx on public.productos (activo, orden);
+
+-- El catálogo público solo ve productos activos; el admin ve todos.
+drop policy if exists "productos lectura publica" on public.productos;
+create policy "productos lectura publica"
+  on public.productos for select
+  to anon, authenticated
+  using (activo or public.es_admin());
+
+-- Reordenar el catálogo en una sola llamada (el admin manda los ids en orden).
+create or replace function public.ordenar_productos(p_ids uuid[])
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.es_admin() then
+    raise exception 'Solo el admin puede ordenar productos.';
+  end if;
+  update public.productos p
+     set orden = o.pos
+    from unnest(p_ids) with ordinality as o(id, pos)
+   where p.id = o.id;
+end;
+$$;
+revoke execute on function public.ordenar_productos(uuid[]) from anon;
+grant execute on function public.ordenar_productos(uuid[]) to authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 4) Variantes
+-- ----------------------------------------------------------------------------
+create table if not exists public.producto_variantes (
+  id          uuid primary key default gen_random_uuid(),
+  producto_id uuid not null references public.productos(id) on delete cascade,
+  nombre      text not null check (length(trim(nombre)) > 0),
+  stock       int  not null default 0 check (stock >= 0),
+  orden       int  not null default 0,
+  created_at  timestamptz not null default now(),
+  unique (producto_id, nombre)
+);
+
+create index if not exists producto_variantes_producto_idx
+  on public.producto_variantes (producto_id, orden);
+
+alter table public.producto_variantes enable row level security;
+
+drop policy if exists "variantes lectura publica" on public.producto_variantes;
+create policy "variantes lectura publica"
+  on public.producto_variantes for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "variantes escritura admin" on public.producto_variantes;
+create policy "variantes escritura admin"
+  on public.producto_variantes for all
+  to authenticated
+  using (public.es_admin()) with check (public.es_admin());
+
+-- Realtime: el catálogo se entera al instante de cambios de stock por variante.
+do $$
+begin
+  alter publication supabase_realtime add table public.producto_variantes;
+exception when duplicate_object then null;
+end $$;
+
+-- ----------------------------------------------------------------------------
+-- Stock del producto = suma de sus variantes (mantenido por trigger)
+-- ----------------------------------------------------------------------------
+create or replace function public.sincronizar_stock_producto(p_producto uuid, p_borrado boolean)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_total int;
+begin
+  select sum(stock) into v_total from public.producto_variantes where producto_id = p_producto;
+  -- Si se borró la última variante, el producto queda en 0 (la admin carga
+  -- el stock a mano de nuevo). Si nunca tuvo variantes, no se toca.
+  if v_total is null and not p_borrado then
+    return;
+  end if;
+
+  -- Bandera de la transacción: le avisa al guardián de abajo que este cambio
+  -- de stock es legítimo (viene de las variantes).
+  perform set_config('app.sincronizando_stock', 'si', true);
+  update public.productos set stock = coalesce(v_total, 0) where id = p_producto;
+  perform set_config('app.sincronizando_stock', '', true);
+end;
+$$;
+
+create or replace function public.variantes_sincronizar_stock()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op in ('UPDATE', 'DELETE') then
+    perform public.sincronizar_stock_producto(old.producto_id, tg_op = 'DELETE');
+  end if;
+  if tg_op in ('INSERT', 'UPDATE') and (tg_op = 'INSERT' or new.producto_id <> old.producto_id or new.stock <> old.stock) then
+    perform public.sincronizar_stock_producto(new.producto_id, false);
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists variantes_sincronizar_stock on public.producto_variantes;
+create trigger variantes_sincronizar_stock
+  after insert or update or delete on public.producto_variantes
+  for each row execute function public.variantes_sincronizar_stock();
+
+-- Guardián: un producto con variantes no acepta cambios directos de stock.
+create or replace function public.productos_guardar_stock_variantes()
+returns trigger language plpgsql as $$
+begin
+  if new.stock is distinct from old.stock
+     and coalesce(current_setting('app.sincronizando_stock', true), '') <> 'si'
+     and exists (select 1 from public.producto_variantes where producto_id = new.id) then
+    raise exception 'Este producto tiene variantes: editá el stock de cada una.'
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists productos_guardar_stock_variantes on public.productos;
+create trigger productos_guardar_stock_variantes
+  before update of stock on public.productos
+  for each row execute function public.productos_guardar_stock_variantes();
+
+-- ----------------------------------------------------------------------------
+-- Devolver / volver a descontar stock de un pedido (reemplaza la de la 0008):
+-- ahora cada ítem puede traer "variante_id". Si lo trae, se ajusta la
+-- variante (y el trigger actualiza el producto); si no, el producto.
+-- ----------------------------------------------------------------------------
+create or replace function public.ajustar_stock_pedido(p_items jsonb, p_signo int)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_items is null then return; end if;
+
+  update public.producto_variantes v
+     set stock = v.stock + p_signo * i.cantidad
+    from (
+      select nullif(value->>'variante_id', '')::uuid as id,
+             sum((value->>'cantidad')::int) as cantidad
+        from jsonb_array_elements(p_items)
+       where nullif(value->>'variante_id', '') is not null
+       group by 1
+    ) i
+   where v.id = i.id;
+
+  update public.productos p
+     set stock = p.stock + p_signo * i.cantidad
+    from (
+      select (value->>'id')::uuid as id,
+             sum((value->>'cantidad')::int) as cantidad
+        from jsonb_array_elements(p_items)
+       where nullif(value->>'variante_id', '') is null
+       group by 1
+    ) i
+   where p.id = i.id;
+end;
+$$;
+
+-- >>>>>>>>>>>>>>>>>>>> 0016_envio_y_pagos.sql <<<<<<<<<<<<<<<<<<<<
+
+-- ============================================================================
+-- Migración 0016: costo de envío y pago online (MercadoPago)
+--
+--   1) configuracion.envio_costo / envio_gratis_desde → envío con costo fijo
+--      (y opcionalmente gratis desde cierto monto). null = "a coordinar".
+--   2) pedidos.envio y pedidos.total → el total lo calcula la BASE, nunca el
+--      front (igual que el subtotal desde la 0006).
+--   3) pedidos.metodo_pago / pago_estado / mp_* → seguimiento del pago online.
+--      El pago lo confirma SOLO el webhook de MercadoPago (Edge Function
+--      webhook-mercadopago), que consulta la API de MP antes de marcarlo.
+--   4) crear_pedido v3: variantes (0015), envío, método de pago, productos
+--      ocultos y origen 'admin' reservado al admin. Los mensajes de error se
+--      muestran tal cual al cliente: van sin voseo ni tuteo para servir a
+--      cualquier tienda (ver idioma.trato en tienda.config.mjs).
+--
+-- Cómo correrla: pegá TODO este archivo en el SQL Editor de Supabase y
+-- ejecutá. Es idempotente.
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1) Envío en la configuración de la tienda
+-- ----------------------------------------------------------------------------
+alter table public.configuracion add column if not exists envio_costo numeric(10,2)
+  check (envio_costo >= 0);
+alter table public.configuracion add column if not exists envio_gratis_desde numeric(10,2)
+  check (envio_gratis_desde >= 0);
+
+-- ----------------------------------------------------------------------------
+-- 2-3) Pedidos: envío, total y pago
+-- ----------------------------------------------------------------------------
+alter table public.pedidos add column if not exists envio numeric(10,2) not null default 0;
+alter table public.pedidos add column if not exists total numeric(10,2)
+  generated always as (subtotal + envio) stored;
+alter table public.pedidos add column if not exists metodo_pago text not null default 'coordinar';
+alter table public.pedidos add column if not exists pago_estado text not null default 'pendiente';
+alter table public.pedidos add column if not exists mp_preference_id text;
+alter table public.pedidos add column if not exists mp_payment_id text;
+
+do $$
+begin
+  alter table public.pedidos add constraint pedidos_metodo_pago_valido
+    check (metodo_pago in ('coordinar', 'mercadopago'));
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter table public.pedidos add constraint pedidos_pago_estado_valido
+    check (pago_estado in ('pendiente', 'aprobado', 'rechazado', 'reembolsado'));
+exception when duplicate_object then null;
+end $$;
+
+-- ----------------------------------------------------------------------------
+-- 4) crear_pedido v3
+-- ----------------------------------------------------------------------------
+drop function if exists public.crear_pedido(
+  text, text, text, text, text, text, text, text, jsonb, numeric, text
+);
+
+create or replace function public.crear_pedido(
+  p_nombre      text,
+  p_telefono    text,
+  p_email       text,
+  p_entrega     text,
+  p_direccion   text,
+  p_localidad   text,
+  p_cp          text,
+  p_notas       text,
+  p_items       jsonb,
+  p_subtotal    numeric,            -- se ignora: el subtotal lo calcula la base
+  p_origen      text default 'checkout',
+  p_metodo_pago text default 'coordinar'
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_numero      bigint;
+  v_uid         uuid := auth.uid();
+  v_admin       boolean := public.es_admin();
+  v_item        jsonb;
+  v_id          uuid;
+  v_variante    uuid;
+  v_cantidad    int;
+  v_nombre      text;
+  v_var_nombre  text;
+  v_precio      numeric;
+  v_stock       int;
+  v_items       jsonb := '[]'::jsonb;
+  v_subtotal    numeric := 0;
+  v_entrega     text := coalesce(nullif(p_entrega, ''), 'coordinar');
+  v_envio       numeric := 0;
+  v_cfg         public.configuracion%rowtype;
+  v_origen      text := coalesce(nullif(p_origen, ''), 'checkout');
+  v_metodo      text := coalesce(nullif(p_metodo_pago, ''), 'coordinar');
+begin
+  if v_uid is null then
+    raise exception 'Hay que iniciar sesión para hacer un pedido.';
+  end if;
+
+  -- La carga manual (origen 'admin') es solo del panel.
+  if v_origen = 'admin' and not v_admin then
+    v_origen := 'checkout';
+  end if;
+
+  if p_items is null or jsonb_array_length(p_items) = 0 then
+    raise exception 'Tu carrito está vacío.';
+  end if;
+
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_id := (v_item->>'id')::uuid;
+    v_variante := nullif(v_item->>'variante_id', '')::uuid;
+    v_cantidad := coalesce((v_item->>'cantidad')::int, 0);
+    -- Reset: un SELECT INTO sin filas deja el valor de la vuelta anterior.
+    v_var_nombre := null;
+    v_nombre := null;
+
+    if v_cantidad <= 0 then
+      raise exception 'La cantidad de uno de los productos no es válida.';
+    end if;
+
+    -- Producto visible (los ocultos solo los puede vender el admin a mano).
+    select nombre, precio into v_nombre, v_precio
+      from public.productos
+     where id = v_id and (activo or v_admin);
+    if v_nombre is null then
+      raise exception 'Uno de los productos de tu carrito ya no está disponible.';
+    end if;
+
+    if v_variante is not null then
+      -- Con variante: se descuenta de la variante (el trigger de la 0015
+      -- actualiza el stock total del producto).
+      update public.producto_variantes
+         set stock = stock - v_cantidad
+       where id = v_variante and producto_id = v_id and stock >= v_cantidad
+      returning nombre into v_var_nombre;
+
+      if not found then
+        select nombre, stock into v_var_nombre, v_stock
+          from public.producto_variantes where id = v_variante and producto_id = v_id;
+        if v_var_nombre is null then
+          raise exception 'Una de las opciones de "%" ya no está disponible.', v_nombre;
+        end if;
+        raise exception 'De "% — %" nos %. Hay que ajustar la cantidad para continuar.',
+          v_nombre, v_var_nombre,
+          case when v_stock = 0 then 'no quedan unidades'
+               when v_stock = 1 then 'queda 1 unidad'
+               else 'quedan ' || v_stock || ' unidades' end;
+      end if;
+    else
+      if exists (select 1 from public.producto_variantes where producto_id = v_id) then
+        raise exception 'Falta elegir una opción de "%".', v_nombre;
+      end if;
+
+      update public.productos
+         set stock = stock - v_cantidad
+       where id = v_id and stock >= v_cantidad;
+
+      if not found then
+        select stock into v_stock from public.productos where id = v_id;
+        raise exception 'De "%" nos %. Hay que ajustar la cantidad para continuar.',
+          v_nombre,
+          case when v_stock = 0 then 'no quedan unidades'
+               when v_stock = 1 then 'queda 1 unidad'
+               else 'quedan ' || v_stock || ' unidades' end;
+      end if;
+    end if;
+
+    v_subtotal := v_subtotal + v_precio * v_cantidad;
+    v_items := v_items || jsonb_build_object(
+      'id', v_id,
+      'nombre', case when v_var_nombre is null then v_nombre else v_nombre || ' — ' || v_var_nombre end,
+      'precio', v_precio,
+      'cantidad', v_cantidad,
+      'variante_id', v_variante,
+      'variante', v_var_nombre
+    );
+  end loop;
+
+  -- Envío: costo fijo de la configuración (null = a coordinar, queda en 0),
+  -- gratis si el subtotal alcanza el mínimo configurado.
+  if v_entrega = 'envio' then
+    select * into v_cfg from public.configuracion where id;
+    v_envio := coalesce(v_cfg.envio_costo, 0);
+    if v_cfg.envio_gratis_desde is not null and v_subtotal >= v_cfg.envio_gratis_desde then
+      v_envio := 0;
+    end if;
+  end if;
+
+  insert into public.pedidos
+    (user_id, nombre, telefono, email, entrega, direccion, localidad, cp, notas,
+     items, subtotal, envio, origen, metodo_pago)
+  values
+    (v_uid, p_nombre, p_telefono, nullif(p_email, ''), v_entrega,
+     p_direccion, p_localidad, p_cp, p_notas, v_items, v_subtotal, v_envio,
+     v_origen, v_metodo)
+  returning numero into v_numero;
+
+  return v_numero;
+end;
+$$;
+
+revoke execute on function public.crear_pedido(
+  text, text, text, text, text, text, text, text, jsonb, numeric, text, text
+) from anon;
+grant execute on function public.crear_pedido(
+  text, text, text, text, text, text, text, text, jsonb, numeric, text, text
+) to authenticated;
+
+-- ----------------------------------------------------------------------------
+-- La clienta NO puede tocar el estado del pago: el update de pedidos ya es
+-- solo admin (0005). El webhook usa la service role, que saltea RLS.
+-- ----------------------------------------------------------------------------
+
+-- >>>>>>>>>>>>>>>>>>>> 0017_tema.sql <<<<<<<<<<<<<<<<<<<<
+
+-- ============================================================================
+-- Migración 0017: tema visual editable desde el admin
+--
+-- Suma a "configuracion" el preset de tema (paleta + tipografías + forma) y
+-- el ornamento del header, para que la dueña los elija en "Mi tienda".
+-- null = lo que diga tienda/tienda.config.mjs.
+--
+-- Cómo correrla: pegá TODO este archivo en el SQL Editor de Supabase y
+-- ejecutá. Es idempotente.
+-- ============================================================================
+
+alter table public.configuracion add column if not exists tema_preset text
+  check (tema_preset in ('calido', 'minimal', 'oscuro', 'vibrante'));
+alter table public.configuracion add column if not exists ornamento text
+  check (ornamento in ('festón', 'onda', 'línea', 'ninguno'));

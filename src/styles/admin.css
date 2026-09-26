@@ -1207,3 +1207,123 @@
 .store-settings .sheet-actions {
   margin: 0 16px;
 }
+
+/* ---------- Formulario de producto: variantes y visibilidad ---------- */
+.field-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-texto-suave);
+}
+.variantes-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.variante-fila {
+  display: grid;
+  grid-template-columns: 1fr 84px 36px;
+  gap: 8px;
+  align-items: center;
+}
+.variante-quitar {
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-peligro-suave);
+  color: var(--color-peligro);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.switch-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 4px 0 16px;
+  cursor: pointer;
+}
+.switch-row input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--color-primario);
+}
+.switch-row span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+.switch-row small {
+  color: var(--color-texto-suave);
+  font-size: 0.78rem;
+}
+
+/* ---------- Orden manual y productos ocultos ---------- */
+.prod-manija {
+  align-self: center;
+  border: none;
+  background: none;
+  color: var(--color-texto-suave);
+  font-size: 1.1rem;
+  letter-spacing: -3px;
+  padding: 8px 4px;
+  cursor: grab;
+  touch-action: none;
+}
+.arrastrando .prod-card {
+  box-shadow: 0 12px 28px rgba(var(--sombra-rgb), 0.22);
+}
+.prod-card.oculto img,
+.prod-card.oculto .prod-name {
+  opacity: 0.5;
+}
+
+/* ---------- Estado del pago online en la card de pedido ---------- */
+.pago-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--color-primario-suave);
+  color: var(--color-primario-hover);
+}
+.pago-badge--aprobado {
+  background: var(--color-exito-suave);
+  color: var(--color-exito);
+}
+.pago-badge--rechazado {
+  background: var(--color-peligro-suave);
+  color: var(--color-peligro);
+}
+
+/* ---------- Mi tienda: selector de tema ---------- */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.preset-op {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid var(--color-borde);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.preset-op.activo {
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 3px var(--color-primario-suave);
+}
+.preset-muestra {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
