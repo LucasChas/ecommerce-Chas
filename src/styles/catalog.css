@@ -1,0 +1,703 @@
+/* ============================================================
+   Estilos de la vista CLIENTE (catálogo público).
+   Replican pecora-catalogo.html. Las clases mantienen el mismo
+   nombre que el prototipo para que sea fácil de comparar.
+   ============================================================ */
+
+.catalog-root {
+  background: var(--cream);
+  min-height: 100vh;
+}
+
+/* ---------- Borde festoneado: elemento de marca (no decoración) ---------- */
+.scallop {
+  height: 20px;
+  width: 100%;
+  background:
+    radial-gradient(circle at 10px 0, transparent 10px, var(--cream) 10px) 0 -1px,
+    var(--sage);
+  background-size: 20px 20px;
+  background-repeat: repeat-x;
+}
+.scallop.flip {
+  transform: scaleY(-1);
+}
+
+/* ---------- Header ---------- */
+.catalog-root header {
+  background: var(--cream-deep);
+  padding: 34px 24px 26px;
+  text-align: center;
+}
+.logo-img {
+  display: block;
+  margin: 0 auto 10px;
+  height: clamp(52px, 9vw, 84px);
+  width: auto;
+}
+.catalog-root header p {
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sage);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* ---------- Buscador ---------- */
+.search-wrap {
+  max-width: 1100px;
+  margin: 34px auto 0;
+  padding: 0 24px;
+}
+.search-box {
+  max-width: 420px;
+  margin: 0 auto;
+  position: relative;
+}
+.search-box svg {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 17px;
+  height: 17px;
+  color: #A9906A;
+  pointer-events: none;
+}
+.search-box input {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  padding: 12px 16px 12px 42px;
+  border-radius: 100px;
+  border: 1px solid var(--cream-deep);
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.06);
+}
+.search-box input:focus {
+  outline: none;
+  border-color: var(--sage);
+}
+.search-box input::placeholder {
+  color: #B0A283;
+}
+
+/* ---------- Filtros por categoría (chips) ---------- */
+.filters {
+  max-width: 1100px;
+  margin: 18px auto 0;
+  padding: 0 24px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.filters button {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 9px 18px;
+  border-radius: 100px;
+  border: 1px solid var(--sage);
+  background: transparent;
+  color: var(--sage-deep);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.filters button.active,
+.filters button:hover {
+  background: var(--sage);
+  color: var(--cream);
+}
+
+/* ---------- Grilla ---------- */
+.catalog-root main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 30px 24px 80px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 26px;
+  /* Separación entre los filtros de categoría y las publicaciones. */
+  margin-top: 34px;
+}
+
+/* Mobile: 2 columnas fijas (garantizado, no depende de minmax) + tipografía
+   y descripción más compactas para que la card no quede desbordada. */
+@media (max-width: 720px) {
+  .catalog-root main {
+    padding: 24px 14px 72px;
+  }
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 22px;
+  }
+  .card-body h3 {
+    font-size: 0.95rem;
+  }
+  .card-body .desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+}
+@media (max-width: 380px) {
+  .grid {
+    gap: 10px;
+  }
+}
+.card {
+  background: #fff;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(51, 48, 42, 0.10);
+}
+.card-img {
+  aspect-ratio: 1 / 1;
+  background: var(--cream-deep);
+  position: relative;
+  overflow: hidden;
+}
+.card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card.unavailable .card-img img {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+.badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(51, 48, 42, 0.85);
+  color: #fff;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 100px;
+}
+.card-body {
+  padding: 16px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.card-body h3 {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 1.15rem;
+  margin: 0;
+}
+.card-body .desc {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  margin: 0;
+  flex: 1;
+}
+.card-body .price {
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin: 2px 0 8px;
+}
+.card.unavailable .price {
+  color: var(--unavailable);
+}
+/* Aviso de pocas unidades en la card */
+.low-stock {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.wa-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 100px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--sage);
+  color: #fff;
+  transition: background 0.15s ease;
+}
+.wa-btn:hover {
+  background: var(--sage-deep);
+}
+.card.unavailable .wa-btn {
+  background: var(--unavailable-bg);
+  color: var(--unavailable);
+}
+.card.unavailable .wa-btn:hover {
+  background: #E2DED5;
+}
+.wa-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+/* Estado "cargando": distinto de "vacío"/"no encontrado" (.no-results) —
+   spinner liviano en CSS, sin dependencias nuevas. */
+.loading-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 50px 20px;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--line);
+  border-top-color: var(--sage);
+  border-radius: 50%;
+  animation: loading-spin 0.7s linear infinite;
+}
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Footer institucional (D12) ----------
+   Se monta una sola vez en CatalogLayout (App.tsx), fuera de .catalog-root,
+   así aparece en todas las vistas públicas (muestrario, producto, carrito,
+   checkout, cuenta, mis pedidos), no solo en el muestrario. */
+.site-footer {
+  background: var(--cream-deep);
+  text-align: center;
+  padding: 28px 24px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.site-footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.site-footer-social {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.site-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--sage-deep);
+}
+.site-footer-link svg {
+  width: 15px;
+  height: 15px;
+}
+.site-footer-link:hover {
+  color: var(--ink);
+}
+/* Badges de medios de pago: placeholder de texto hasta contar con los
+   logos reales de Abril y Mercado Pago (ver TODO(owner-assets) en Footer.tsx). */
+.site-footer-payments {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.payment-badge {
+  padding: 5px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--cream-deep, #E5DFCF);
+  background: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+.site-footer-copy {
+  margin: 0;
+}
+
+/* ---------- Card clickeable + CTA ---------- */
+/* La parte de arriba de la card (imagen + textos) es un botón que abre el
+   detalle; el botón de WhatsApp queda aparte para no dispararlo. */
+.card-open {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.card-body {
+  padding-bottom: 6px;
+}
+.card-cta {
+  padding: 4px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Sin CTA (producto disponible): restaurar el padding inferior completo para
+   que la card no quede con el precio pegado al borde. */
+.card:not(:has(.card-cta)) .card-body {
+  padding-bottom: 18px;
+}
+/* Contador de fotos (esquina de la imagen, cuando hay más de una) */
+.photo-count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(51, 48, 42, 0.72);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 100px;
+}
+
+/* ---------- Detalle de producto (página /producto/:id) ---------- */
+.product-page {
+  max-width: 1000px;
+}
+.pp-breadcrumb {
+  margin-bottom: 16px;
+}
+.pp-breadcrumb a {
+  color: var(--sage-deep);
+}
+.pp-back {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 10px 20px;
+  border: 1px solid var(--sage);
+  border-radius: 100px;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--sage-deep);
+  background: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.pp-back:hover {
+  background: var(--sage);
+  color: #fff;
+}
+/* Contenedor galería + info (card blanca) */
+.pd-content {
+  display: flex;
+  gap: 28px;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.08);
+}
+
+/* Galería */
+.pd-gallery {
+  flex: 1 1 55%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Carrusel embla (D9): .pd-main es el viewport (overflow:hidden), .pd-main-viewport
+   es el track flex que embla traslada, cada .pd-main-slide es una imagen. */
+.pd-main {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: var(--cream-deep);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pd-main-viewport {
+  display: flex;
+  height: 100%;
+}
+.pd-main-slide {
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 0;
+  height: 100%;
+}
+.pd-main-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.pd-main.unavailable .pd-main-slide img {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.pd-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pd-thumb {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--cream-deep);
+}
+.pd-thumb.active {
+  border-color: var(--sage);
+}
+.pd-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Información */
+.pd-info {
+  flex: 1 1 45%;
+  min-width: 0;
+  padding: 8px 8px 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pd-breadcrumb {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pd-breadcrumb span {
+  color: var(--sage-deep);
+  font-weight: 600;
+}
+.pd-name {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  margin: 0;
+}
+.pd-price {
+  font-weight: 600;
+  font-size: 1.3rem;
+  margin: 2px 0 6px;
+}
+.pd-price.off {
+  color: var(--unavailable);
+}
+.pd-stock-msg {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--danger);
+  font-weight: 500;
+}
+.pd-low-stock {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--danger);
+}
+.pd-note {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.pd-desc {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  white-space: pre-line;
+}
+/* Botones de consulta (WhatsApp + Instagram) */
+.pd-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  align-self: flex-start;
+  min-width: 250px;
+}
+.pd-wa,
+.pd-ig {
+  padding-left: 22px;
+  padding-right: 22px;
+}
+/* Botón de Instagram: variante secundaria (outline) para diferenciarlo. */
+.ig-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 100px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--sage-deep);
+  border: 1px solid var(--sage);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.ig-btn:hover {
+  background: var(--sage);
+  color: #fff;
+}
+.ig-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Mobile: galería arriba, info abajo */
+@media (max-width: 720px) {
+  .pd-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .pd-info {
+    padding: 4px;
+  }
+  .pd-name {
+    font-size: 1.3rem;
+  }
+  .pd-actions {
+    align-self: stretch;
+    min-width: 0;
+  }
+}
+
+/* ---------- Páginas legales (privacidad / términos) ---------- */
+.catalog-root main.legal-page {
+  max-width: 760px;
+}
+.legal-updated {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin: -8px 0 20px;
+}
+.legal-card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 28px 30px;
+  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.legal-card h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin: 8px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.legal-card h2:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.legal-card ul,
+.legal-card ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.legal-table-wrap {
+  overflow-x: auto;
+}
+.legal-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.legal-card th,
+.legal-card td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.legal-card th {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--cream);
+  white-space: nowrap;
+}
+.legal-card tr:last-child td {
+  border-bottom: none;
+}
+.legal-card a {
+  color: var(--sage-deep);
+  text-decoration: underline;
+}
+.legal-card strong {
+  color: var(--ink);
+}
+.legal-page .pp-back {
+  display: table;
+  margin: 24px auto 0;
+}
+
+@media (max-width: 480px) {
+  .legal-card {
+    padding: 20px;
+  }
+}
