@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0009: papelera de pedidos (borrar y reflotar)
+-- Migración 0009: papelera de pedidos (borrar y reflotar)
 --
 -- Por qué: borrar un pedido era definitivo. Ahora "borrar" lo manda a la
 -- papelera (queda oculto pero recuperable) y desde ahí se puede restaurar o

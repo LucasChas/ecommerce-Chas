@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0013: origen del pedido (checkout de la clienta vs. carga
+-- Migración 0013: origen del pedido (checkout de la clienta vs. carga
 -- manual de la admin cuando el pedido llega por WhatsApp).
 -- ============================================================================
 

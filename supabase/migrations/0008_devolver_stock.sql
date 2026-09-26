@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0008: cancelar o borrar un pedido devuelve el stock
+-- Migración 0008: cancelar o borrar un pedido devuelve el stock
 --
 -- Por qué: desde la 0006 el pedido descuenta stock al crearse, pero nada lo
 -- reponía. Si un pedido se cancelaba o se borraba, esas unidades quedaban

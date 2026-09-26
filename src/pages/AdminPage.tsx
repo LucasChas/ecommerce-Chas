@@ -7,6 +7,7 @@ import { useCategories } from '../hooks/useCategories'
 import { useOrders, type FiltroEstado } from '../hooks/useOrders'
 import type { ProductoConCategoria } from '../types'
 import Logo from '../components/Logo'
+import { tienda } from '../tienda'
 import LoginForm from '../components/admin/LoginForm'
 import StatsStrip from '../components/admin/StatsStrip'
 import ProductList from '../components/admin/ProductList'
@@ -16,9 +17,10 @@ import ProductFormSheet from '../components/admin/ProductFormSheet'
 import CategoryManagerSheet from '../components/admin/CategoryManagerSheet'
 import ManualOrderSheet from '../components/admin/ManualOrderSheet'
 import OrdersList from '../components/admin/OrdersList'
+import StoreSettings from '../components/admin/StoreSettings'
 import '../styles/admin.css'
 
-type Vista = 'productos' | 'pedidos'
+type Vista = 'productos' | 'pedidos' | 'tienda'
 
 // Chips de filtro de la pestaña Pedidos. El texto es el que usa la clienta en
 // "Mis pedidos", para hablar el mismo idioma en las dos puntas.
@@ -102,7 +104,7 @@ export default function AdminPage() {
     return (
       <div className="admin-root">
         <div className="login-root">
-          <h1>Panel de Pecora</h1>
+          <h1>Panel de {tienda().nombre}</h1>
           <p className="sub">Esta cuenta no tiene acceso al panel de administración.</p>
           <button className="btn btn-ghost" onClick={() => supabase.auth.signOut()}>
             Cerrar sesión
@@ -115,6 +117,9 @@ export default function AdminPage() {
   const inicial = (session.user.email?.[0] ?? 'A').toUpperCase()
   // Del conteo de la base, no de la página cargada.
   const pedidosNuevos = conteos.nuevo
+  // La pestaña Pedidos existe si la tienda vende online o carga pedidos a mano.
+  const { carrito, pedidosManuales } = tienda().features
+  const conPedidos = carrito || pedidosManuales
 
   function abrirNuevo() {
     setEditando(null)
@@ -150,7 +155,7 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Pestañas: Productos / Pedidos */}
+        {/* Pestañas: Productos / Pedidos / Mi tienda */}
         <div className="admin-tabs">
           <button
             className={vista === 'productos' ? 'active' : ''}
@@ -158,16 +163,26 @@ export default function AdminPage() {
           >
             Productos
           </button>
+          {conPedidos && (
+            <button
+              className={vista === 'pedidos' ? 'active' : ''}
+              onClick={() => setVista('pedidos')}
+            >
+              Pedidos
+              {pedidosNuevos > 0 && <span className="tab-badge">{pedidosNuevos}</span>}
+            </button>
+          )}
           <button
-            className={vista === 'pedidos' ? 'active' : ''}
-            onClick={() => setVista('pedidos')}
+            className={vista === 'tienda' ? 'active' : ''}
+            onClick={() => setVista('tienda')}
           >
-            Pedidos
-            {pedidosNuevos > 0 && <span className="tab-badge">{pedidosNuevos}</span>}
+            Mi tienda
           </button>
         </div>
 
-        {vista === 'productos' ? (
+        {vista === 'tienda' ? (
+          <StoreSettings />
+        ) : vista === 'productos' ? (
           <>
             <StatsStrip productos={productos} />
             <div className="list-head">
@@ -252,13 +267,15 @@ export default function AdminPage() {
               filtrando={filtroEstado !== 'todos' || busqueda.trim() !== ''}
               papelera={filtroEstado === 'eliminados'}
             />
-            <button
-              className="fab"
-              aria-label="Nuevo pedido manual"
-              onClick={() => setPedidoSheetAbierta(true)}
-            >
-              +
-            </button>
+            {pedidosManuales && (
+              <button
+                className="fab"
+                aria-label="Nuevo pedido manual"
+                onClick={() => setPedidoSheetAbierta(true)}
+              >
+                +
+              </button>
+            )}
           </>
         )}
       </div>

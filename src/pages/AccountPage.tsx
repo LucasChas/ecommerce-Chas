@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Logo from '../components/Logo'
+import { textoTienda } from '../tienda'
 import Scallop from '../components/Scallop'
 import PasswordInput from '../components/common/PasswordInput'
 import { useAuth } from '../context/AuthContext'
@@ -99,7 +100,7 @@ export default function AccountPage() {
             {modo === 'ingresar'
               ? 'Ingresá para ver tus pedidos y finalizar tu compra.'
               : modo === 'registrar'
-                ? 'Creá tu cuenta de Pecora para comprar y seguir tus pedidos.'
+                ? textoTienda('registroBajada')
                 : 'Ingresá tu email y te mandamos un link para elegir una contraseña nueva.'}
           </p>
 

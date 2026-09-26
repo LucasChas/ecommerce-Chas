@@ -6,6 +6,20 @@
 
 ---
 
+## Estado de implementación
+
+| Fase | Estado |
+|---|---|
+| 1. Desacoplar | ✅ Hecha: `tienda/tienda.config.mjs` + `src/tienda/` (provider y hook), tokens CSS por función con derivados `color-mix()`, `money()` y fechas según la región, textos de marca configurables, legales con variables, logo de texto por defecto, sin menciones a la marca original en `src/`. Pendiente: diccionario completo de textos (trato vos/tú, género). |
+| 2. Admin "Mi tienda" | ✅ Hecha: tabla `configuracion` (migración 0014) + pestaña en el panel (nombre, eslogan, logo, colores con vista previa, contacto, URL). |
+| 3. Instalación | ✅ Parcial: `supabase/instalar.sql` (generado), `promover_admin()`, `pnpm nueva-tienda`, `pnpm emails`, `docs/INSTALACION.md`. Pendiente: Supabase CLI y `seed.sql` por rubro. |
+| 4. Feature flags | ✅ Parcial: `carrito` (modo muestrario), `cuentas`, `pedidosManuales`. |
+| 5. Presets de tema | Pendiente (hoy: 3 colores + fuentes + ornamento festón/ninguno). |
+| 6. Rubros | Pendiente. |
+| 7. Pagos y envíos | Pendiente. |
+
+---
+
 ## 0. Resumen en una línea
 
 Separar el repo en **núcleo genérico** (lo que hoy funciona: catálogo, carrito,

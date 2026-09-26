@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { instagramHabilitado, instagramPerfilLink, waPerfilLink } from '../../lib/config'
+import { useTienda } from '../../tienda'
 
 // Footer institucional del catálogo público: se monta una sola vez en
 // CatalogLayout (App.tsx), así aparece en todas las vistas públicas
 // (muestrario, producto, carrito, checkout, cuenta, mis pedidos).
 export default function Footer() {
   const anio = new Date().getFullYear()
+  const { config } = useTienda()
 
   return (
     <footer className="site-footer">
@@ -23,7 +25,7 @@ export default function Footer() {
             </svg>
             WhatsApp
           </a>
-          {instagramHabilitado && (
+          {instagramHabilitado() && (
             <a
               className="site-footer-link"
               href={instagramPerfilLink()}
@@ -51,7 +53,10 @@ export default function Footer() {
           </Link>
         </div>
 
-        <p className="site-footer-copy">© {anio} Pecora — Accesorios de bebé</p>
+        <p className="site-footer-copy">
+          © {anio} {config.nombre}
+          {config.eslogan && ` — ${config.eslogan}`}
+        </p>
       </div>
     </footer>
   )

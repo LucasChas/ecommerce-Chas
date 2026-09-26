@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import Logo from '../Logo'
+import { tienda } from '../../tienda'
 import PasswordInput from '../common/PasswordInput'
 
 // Pantalla de login (email + contraseña) previa a entrar al panel /admin.
@@ -25,7 +26,7 @@ export default function LoginForm() {
     <form className="login-root" onSubmit={onSubmit}>
       <Logo className="login-logo" />
       <div>
-        <h1>Panel de Pecora</h1>
+        <h1>Panel de {tienda().nombre}</h1>
         <p className="sub">Ingresá para administrar el muestrario.</p>
       </div>
 

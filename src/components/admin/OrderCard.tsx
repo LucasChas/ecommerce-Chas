@@ -2,6 +2,8 @@ import type { EstadoPedido, Pedido } from '../../types'
 import { supabase } from '../../lib/supabaseClient'
 import { useDialog } from '../../context/DialogContext'
 import { money } from '../../lib/format'
+import { waAClienteLink } from '../../lib/config'
+import { tienda } from '../../tienda'
 
 interface Props {
   pedido: Pedido
@@ -10,17 +12,8 @@ interface Props {
 
 const ESTADOS: EstadoPedido[] = ['nuevo', 'confirmado', 'entregado', 'cancelado']
 
-// Arma un link de WhatsApp al teléfono de la clienta (normaliza el número a AR).
-function waCliente(telefono: string, numero: number): string {
-  let d = telefono.replace(/\D/g, '')
-  if (d.startsWith('0')) d = d.slice(1)
-  if (!d.startsWith('54')) d = '549' + d
-  const msg = `Hola! Te escribo por tu pedido #${numero} en Pecora 🐑`
-  return `https://wa.me/${d}?text=${encodeURIComponent(msg)}`
-}
-
 function fecha(iso: string): string {
-  return new Date(iso).toLocaleString('es-AR', {
+  return new Date(iso).toLocaleString(tienda().region.locale, {
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
@@ -152,7 +145,7 @@ export default function OrderCard({ pedido, onChanged }: Props) {
 
       <div className="order-cliente">
         <strong>{pedido.nombre}</strong>
-        <a className="order-wa" href={waCliente(pedido.telefono, pedido.numero)} target="_blank" rel="noopener noreferrer">
+        <a className="order-wa" href={waAClienteLink(pedido.telefono, pedido.numero)} target="_blank" rel="noopener noreferrer">
           {pedido.telefono} · WhatsApp
         </a>
         {pedido.email && <span className="order-email">{pedido.email}</span>}

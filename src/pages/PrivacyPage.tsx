@@ -2,10 +2,16 @@ import { Link } from 'react-router-dom'
 import Logo from '../components/Logo'
 import Scallop from '../components/Scallop'
 import HeaderActions from '../components/account/HeaderActions'
+import { useTienda } from '../tienda'
 import '../styles/catalog.css'
 import '../styles/cart.css'
 
+// Texto legal genérico: nombre, sitio y email salen de la config de la tienda.
+// Es un modelo: cada tienda debe revisarlo con su asesor legal.
 export function PrivacyPage() {
+  const { config } = useTienda()
+  const marca = config.eslogan ? `${config.nombre} — ${config.eslogan}` : config.nombre
+  const email = config.contacto.email
   return (
     <div className="catalog-root">
       <header className="cart-header">
@@ -16,20 +22,20 @@ export function PrivacyPage() {
 
       <main className="legal-page">
         <h1 className="cart-title">Política de Privacidad</h1>
-        <p className="legal-updated">Última actualización: 24 de agosto de 2026</p>
+        <p className="legal-updated">Última actualización: {config.legal.ultimaActualizacion}</p>
 
         <div className="legal-card">
           <p>
-            La presente Política de Privacidad describe cómo <strong>Pécora — Accesorios de bebé</strong> (en
-            adelante, "Pécora", "nosotros" o "nuestro sitio web", accesible a través de{' '}
-            <a href="https://pecora-muestrario.vercel.app/">https://pecora-muestrario.vercel.app/</a>) recopila,
+            La presente Política de Privacidad describe cómo <strong>{marca}</strong> (en
+            adelante, &quot;{config.nombre}&quot;, "nosotros" o "nuestro sitio web", accesible a través de{' '}
+            <a href={config.urlSitio}>{config.urlSitio}</a>) recopila,
             utiliza, almacena y protege la información proporcionada por los usuarios y clientes al navegar,
             registrarse o realizar pedidos en nuestra plataforma.
           </p>
 
           <h2>1. Información General</h2>
           <p>
-            En Pécora nos comprometemos a garantizar la confidencialidad y seguridad de los datos personales de
+            En {config.nombre} nos comprometemos a garantizar la confidencialidad y seguridad de los datos personales de
             nuestros usuarios. Esta política se aplica a todos los servicios ofrecidos a través de nuestro sitio
             web y los canales de comunicación asociados.
           </p>
@@ -88,7 +94,7 @@ export function PrivacyPage() {
             <li>
               <strong>Google OAuth / Gmail API:</strong> Utilizado de forma interna y automatizada para el despacho
               exclusivo de recibos de compra y notificaciones del sistema desde nuestra casilla oficial
-              (<code>pecorabril@gmail.com</code>). No accedemos, leemos ni almacenamos correos personales ajenos a
+              (<code>{email}</code>). No accedemos, leemos ni almacenamos correos personales ajenos a
               las notificaciones generadas por la tienda.
             </li>
             <li><strong>Supabase:</strong> Infraestructura segura para la gestión de bases de datos, autenticación de usuarios y ejecución de funciones de backend.</li>
@@ -107,7 +113,7 @@ export function PrivacyPage() {
             Los usuarios tienen derecho a solicitar el acceso, rectificación, actualización o eliminación de sus
             datos personales de nuestros registros en cualquier momento. Para ejercer estos derechos o realizar
             cualquier consulta vinculada con esta política, puede comunicarse con nosotros a{' '}
-            <a href="mailto:pecorabril@gmail.com">pecorabril@gmail.com</a>.
+            <a href={`mailto:${email}`}>{email}</a>.
           </p>
         </div>
 

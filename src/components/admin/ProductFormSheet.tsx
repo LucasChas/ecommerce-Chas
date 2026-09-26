@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Categoria, ProductoConCategoria } from '../../types'
 import { supabase } from '../../lib/supabaseClient'
+import { tienda } from '../../tienda'
 import { comprimirImagen } from '../../lib/imageCompress'
 import { useDialog } from '../../context/DialogContext'
 import ImagePicker, { type ImagenItem } from './ImagePicker'
@@ -239,7 +240,7 @@ export default function ProductFormSheet({
               required
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej: Body manga larga"
+              placeholder="Ej: Nombre del producto"
             />
           </div>
 
@@ -285,13 +286,13 @@ export default function ProductFormSheet({
               required
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Talle, material, detalles..."
+              placeholder={tienda().catalogo.placeholderDescripcion}
             />
           </div>
 
           <div className="row2">
             <div className="field">
-              <label>Precio (ARS)</label>
+              <label>Precio ({tienda().region.moneda})</label>
               <input
                 type="number"
                 min={0}

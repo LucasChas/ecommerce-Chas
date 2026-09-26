@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0004: función para crear pedidos (checkout público)
+-- Migración 0004: función para crear pedidos (checkout público)
 --
 -- Por qué: el checkout necesita INSERTAR el pedido Y recibir de vuelta el número
 -- de orden. Pero la lectura de "pedidos" es solo para la admin (RLS). Si el alta

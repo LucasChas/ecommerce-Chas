@@ -1,4 +1,4 @@
-# Edge Functions — Pecora
+# Edge Functions
 
 Este proyecto NO adopta el stack local de Supabase (`supabase init`, `db push`,
 etc.). Las migraciones SQL se siguen corriendo a mano en el SQL Editor del
@@ -31,8 +31,8 @@ Creá `supabase/functions/.env.local` (NO se sube al repo — ya está en
 GMAIL_CLIENT_ID=xxxxxxxxxxxx.apps.googleusercontent.com
 GMAIL_CLIENT_SECRET=xxxxxxxxxxxx
 GMAIL_REFRESH_TOKEN=1//xxxxxxxxxxxx
-GMAIL_SENDER=pecoraabril@gmail.com
-BRAND_NAME=Pecora
+GMAIL_SENDER=mitienda@gmail.com
+BRAND_NAME="Mi Tienda"
 BRAND_LOGO_URL=https://tu-dominio.com/logo.png
 STORE_URL=https://tu-dominio.com
 WHATSAPP_NUMBER=5493511234567
@@ -41,16 +41,18 @@ WHATSAPP_NUMBER=5493511234567
 Notas:
 - `GMAIL_CLIENT_ID`/`GMAIL_CLIENT_SECRET`/`GMAIL_REFRESH_TOKEN` salen de un
   proyecto de Google Cloud propio, autorizado UNA vez contra la cuenta
-  `pecoraabril@gmail.com` (ver "Setup completo" abajo) — no requieren un
+  `mitienda@gmail.com` (ver "Setup completo" abajo) — no requieren un
   dominio propio verificado, a diferencia de un proveedor transaccional como
   Resend.
-- `GMAIL_SENDER` es la dirección `pecoraabril@gmail.com` — vive como secreto
+- `GMAIL_SENDER` es la dirección `mitienda@gmail.com` — vive como secreto
   (y no hardcodeada en el código) para no fijarla en el código fuente.
-- `WHATSAPP_NUMBER` es opcional: el mismo número que usás en
-  `VITE_WHATSAPP_NUMBER` del frontend (código de país + área + número, sin
-  "+" ni espacios). Como esta función corre en otro runtime, no lee el `.env`
-  del front — hay que repetirlo acá. Si no lo cargás, el mail sale igual,
-  solo sin el botón de "Escribinos por WhatsApp".
+- `BRAND_NAME`, `BRAND_LOGO_URL`, `STORE_URL` y `WHATSAPP_NUMBER` son un
+  respaldo: la función lee primero la tabla `configuracion` (lo que la dueña
+  carga en el admin → "Mi tienda") y solo usa estos secretos si la tabla no
+  tiene el dato. Sin WhatsApp, el mail sale igual, sin ese botón.
+- `STORE_LOCALE` / `STORE_CURRENCY` (opcionales, default `es-AR` / `ARS`):
+  los mismos valores que `region` en `tienda/tienda.config.mjs`, para
+  formatear precios y fechas del recibo.
 - Nunca uses el prefijo `VITE_*` para estos valores: esas variables se
   compilan al bundle público del front y quedarían expuestas en el navegador.
   Estos son secretos de función, viven solo del lado del servidor.
@@ -89,12 +91,12 @@ en el SQL Editor, con tus valores reales:
 ```sql
 select vault.create_secret(
   'https://<tu-project-ref>.supabase.co/functions/v1/enviar-recibo-pedido',
-  'pecora_email_function_url'
+  'tienda_email_function_url'
 );
 
 select vault.create_secret(
   '<tu-service-role-key>',
-  'pecora_email_function_token'
+  'tienda_email_function_token'
 );
 ```
 
@@ -110,7 +112,7 @@ select vault.create_secret(
 
 ### Setup completo desde cero (checklist para la dueña de la tienda)
 
-Este mail se manda desde `pecoraabril@gmail.com` vía la API de Gmail, no
+Este mail se manda desde `mitienda@gmail.com` vía la API de Gmail, no
 desde un proveedor transaccional — porque no hay un dominio propio
 verificable (solo la cuenta de Gmail y un subdominio de Vercel, que no se
 puede verificar como dominio de envío). El único costo es un setup de Google
@@ -126,7 +128,7 @@ Cloud que se hace UNA sola vez.
    - Tipo de usuario: **External**.
    - Estado de publicación: dejarlo en **Testing** (no hace falta pasar la
      revisión de Google para uso personal/de prueba con pocos usuarios).
-   - En "Test users", agregar `pecoraabril@gmail.com`.
+   - En "Test users", agregar `mitienda@gmail.com`.
 4. Ir a "APIs & Services" → "Credentials" → "Create Credentials" →
    "OAuth client ID":
    - Tipo de aplicación: **Desktop app** (es la más simple para sacar un
@@ -142,7 +144,7 @@ Cloud que se hace UNA sola vez.
    2. En la lista de la izquierda (Step 1), buscar o escribir a mano el
       scope `https://www.googleapis.com/auth/gmail.send` → click
       "Authorize APIs".
-   3. Iniciar sesión con `pecoraabril@gmail.com` y aceptar el permiso
+   3. Iniciar sesión con `mitienda@gmail.com` y aceptar el permiso
       (puede avisar que la app no está verificada — es esperado en modo
       Testing, continuar igual).
    4. Ya en Step 2, click "Exchange authorization code for tokens".
@@ -158,7 +160,7 @@ Cloud que se hace UNA sola vez.
 8. `pnpm dlx supabase@latest link --project-ref <tu-project-ref>`.
 9. Crear `supabase/functions/.env.local` con los 7 valores de la sección 2
    (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` del
-   paso 5, `GMAIL_SENDER=pecoraabril@gmail.com`, `BRAND_NAME`,
+   paso 5, `GMAIL_SENDER=mitienda@gmail.com`, `BRAND_NAME`,
    `BRAND_LOGO_URL`, `STORE_URL`).
 10. `pnpm run deploy:fn` (o el comando manual de la sección 3, paso 1).
 11. `pnpm dlx supabase@latest secrets set --env-file supabase/functions/.env.local`.

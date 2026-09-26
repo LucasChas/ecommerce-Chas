@@ -1,8 +1,13 @@
-// Formatea un número como precio en pesos argentinos (sin decimales).
+import { tienda } from '../tienda'
+
+// Formatea un número como precio en la moneda y el locale de la tienda
+// (tienda.config.mjs → region).
 export function money(n: number): string {
-  return n.toLocaleString('es-AR', {
+  const { locale, moneda, decimales } = tienda().region
+  return n.toLocaleString(locale, {
     style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
+    currency: moneda,
+    minimumFractionDigits: decimales,
+    maximumFractionDigits: decimales,
   })
 }

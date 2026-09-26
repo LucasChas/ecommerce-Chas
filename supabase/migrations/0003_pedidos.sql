@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0003: pedidos (checkout como invitada)
+-- Migración 0003: pedidos (checkout como invitada)
 -- Crea la tabla de pedidos que genera el checkout del catálogo público.
 --
 -- Cómo correrla: pegá TODO este archivo en el SQL Editor de Supabase y ejecutá.

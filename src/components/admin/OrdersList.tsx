@@ -69,7 +69,7 @@ export default function OrdersList({
             <>
               Todavía no hay pedidos.
               <br />
-              Cuando una clienta finalice una compra en el muestrario, aparece acá.
+              Cuando un cliente finalice una compra en el muestrario, aparece acá.
             </>
           )}
         </div>

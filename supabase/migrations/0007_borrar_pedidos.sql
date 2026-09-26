@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0007: la administradora puede borrar pedidos
+-- Migración 0007: la administradora puede borrar pedidos
 --
 -- Por qué: hasta ahora un pedido solo podía pasar a "cancelado". No había forma
 -- de eliminar los de prueba desde el panel (la tabla no tenía policy de DELETE),

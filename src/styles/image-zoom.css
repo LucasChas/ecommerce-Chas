@@ -42,7 +42,7 @@
   border-radius: 100px;
   border: none;
   background: rgba(255, 255, 255, 0.92);
-  color: var(--ink);
+  color: var(--color-texto);
   display: flex;
   align-items: center;
   justify-content: center;

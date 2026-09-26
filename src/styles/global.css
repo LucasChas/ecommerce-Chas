@@ -11,9 +11,9 @@ body {
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--fuente-texto);
   -webkit-font-smoothing: antialiased;
-  color: var(--ink);
+  color: var(--color-texto);
 }
 
 a {
@@ -22,5 +22,5 @@ a {
 }
 
 button {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--fuente-texto);
 }

@@ -32,6 +32,6 @@ const esPanel =
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storageKey: esPanel ? 'pecora-auth-panel' : 'pecora-auth-muestrario',
+    storageKey: esPanel ? 'tienda-auth-panel' : 'tienda-auth-muestrario',
   },
 })

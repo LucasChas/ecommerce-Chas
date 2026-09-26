@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0006: el pedido descuenta stock y se arma con los precios
+-- Migración 0006: el pedido descuenta stock y se arma con los precios
 -- de la base.
 --
 -- Por qué:

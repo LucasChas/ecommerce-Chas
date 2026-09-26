@@ -1,11 +1,11 @@
 // ============================================================================
-// Pecora — Edge Function: enviar-recibo-pedido
+// Edge Function: enviar-recibo-pedido
 //
 // Disparada por el trigger AFTER INSERT de la migración 0012 (pg_net,
 // fire-and-forget). Recibe solo { pedido_id }, vuelve a leer el pedido del
 // lado del servidor con un cliente service-role, resuelve el destinatario y
 // manda el mail de confirmación vía la API de Gmail (enviando como
-// pecoraabril@gmail.com por OAuth2), no SMTP crudo: Deno Edge Functions no
+// la casilla de la tienda por OAuth2), no SMTP crudo: Deno Edge Functions no
 // tienen un path confiable de TCP/SMTP de larga duración.
 //
 // Por qué no confiar en un payload completo: un body forjado o repetido en
@@ -28,8 +28,10 @@
 //
 // Secretos usados (ver supabase/functions/README.md para setearlos):
 //   GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER,
-//   BRAND_NAME, BRAND_LOGO_URL, STORE_URL, WHATSAPP_NUMBER (opcional — sin
-//   este, el mail sale igual, solo sin el botón de WhatsApp), SUPABASE_URL,
+//   BRAND_NAME, BRAND_LOGO_URL, STORE_URL, WHATSAPP_NUMBER (opcionales: si
+//   la tabla "configuracion" tiene esos datos, ganan los de la tabla; sin
+//   WhatsApp el mail sale igual, sin el botón), STORE_LOCALE, STORE_CURRENCY
+//   (opcionales, default es-AR / ARS), SUPABASE_URL,
 //   SUPABASE_SERVICE_ROLE_KEY (estas dos últimas las inyecta Supabase
 //   automáticamente en toda Edge Function).
 // ============================================================================
@@ -41,6 +43,13 @@ const LOG_PREFIX = "[enviar-recibo-pedido]";
 
 interface RequestBody {
   pedido_id?: string;
+}
+
+interface ConfigRow {
+  nombre_tienda: string | null;
+  logo_url: string | null;
+  url_sitio: string | null;
+  whatsapp: string | null;
 }
 
 interface PedidoRow {
@@ -79,7 +88,7 @@ function parseItems(raw: unknown): ReciboItem[] {
 
 function formatFecha(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString("es-AR", {
+    return new Date(iso).toLocaleDateString(Deno.env.get("STORE_LOCALE") || "es-AR", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -122,7 +131,7 @@ function encodeMimeSubject(subject: string): string {
 
 /**
  * Arma el header `From` con nombre para mostrar + dirección, ej.
- * `"Pecora" <pecoraabril@gmail.com>`. Sin el nombre, los clientes de correo
+ * `"Mi Tienda" <mitienda@gmail.com>`. Sin el nombre, los clientes de correo
  * muestran la dirección cruda (el nombre de usuario de Gmail) en vez de la
  * marca — es lo que hace que hoy el remitente se vea distinto al de los
  * mails de Supabase Auth, que sí llevan nombre configurado.
@@ -250,15 +259,6 @@ Deno.serve(async (req: Request) => {
   const gmailClientSecret = Deno.env.get("GMAIL_CLIENT_SECRET");
   const gmailRefreshToken = Deno.env.get("GMAIL_REFRESH_TOKEN");
   const gmailSender = Deno.env.get("GMAIL_SENDER");
-  const brandName = Deno.env.get("BRAND_NAME") ?? "Pecora";
-  const brandLogoUrl = Deno.env.get("BRAND_LOGO_URL") || null;
-  const storeUrl = Deno.env.get("STORE_URL") ?? "";
-  // Mismo número que usa el front (VITE_WHATSAPP_NUMBER) — como esta función
-  // corre en otro runtime (Deno, no Vite), se repite como secreto propio en
-  // vez de compartir el .env del frontend. Formato: código de país + área +
-  // número, sin "+" ni espacios (ej: 5493511234567).
-  const whatsappNumber = Deno.env.get("WHATSAPP_NUMBER") || null;
-  const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.error(`${LOG_PREFIX} faltan SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY`);
@@ -274,6 +274,24 @@ Deno.serve(async (req: Request) => {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // Marca: primero la tabla "configuracion" (lo que la dueña edita desde el
+  // admin, migración 0014); si no está, los secretos BRAND_NAME /
+  // BRAND_LOGO_URL / STORE_URL / WHATSAPP_NUMBER. Así un cambio de logo o de
+  // número desde el panel llega también a los mails sin redeployar nada.
+  const { data: cfg, error: cfgError } = await supabase
+    .from("configuracion")
+    .select("nombre_tienda, logo_url, url_sitio, whatsapp")
+    .maybeSingle<ConfigRow>();
+  if (cfgError) {
+    console.warn(`${LOG_PREFIX} no se pudo leer "configuracion", se usan los secretos:`, cfgError.message);
+  }
+  const brandName = cfg?.nombre_tienda || Deno.env.get("BRAND_NAME") || "Tienda";
+  const brandLogoUrl = cfg?.logo_url || Deno.env.get("BRAND_LOGO_URL") || null;
+  const storeUrl = cfg?.url_sitio || Deno.env.get("STORE_URL") || "";
+  // Formato: código de país + área + número, sin "+" ni espacios.
+  const whatsappNumber = cfg?.whatsapp || Deno.env.get("WHATSAPP_NUMBER") || null;
+  const whatsappUrl = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
 
   const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")

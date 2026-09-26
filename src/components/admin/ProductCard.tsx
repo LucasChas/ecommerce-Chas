@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ProductoConCategoria } from '../../types'
 import { supabase } from '../../lib/supabaseClient'
+import { IMG_PLACEHOLDER } from '../../lib/images'
 import { useDialog } from '../../context/DialogContext'
 
 interface Props {
@@ -10,7 +11,6 @@ interface Props {
   onChanged: () => void
 }
 
-const IMG_PLACEHOLDER = 'https://placehold.co/120x120/EEE1C4/B08F55?text=Pecora'
 
 // Card de producto en el panel admin, con edición inline de precio y stock.
 // Los cambios se guardan al salir del campo (onBlur) y Realtime refresca la

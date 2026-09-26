@@ -9,6 +9,7 @@ import { money } from '../lib/format'
 import { waConsultaCancelacionLink } from '../lib/config'
 import { IMG_PLACEHOLDER, portadaDe } from '../lib/images'
 import ImageZoom from '../components/common/ImageZoom'
+import { tienda } from '../tienda'
 import type { EstadoPedido, Pedido } from '../types'
 import '../styles/catalog.css'
 import '../styles/account.css'
@@ -28,7 +29,7 @@ function estadoVisible(pedido: Pedido): EstadoPedido {
 }
 
 function fecha(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return new Date(iso).toLocaleDateString(tienda().region.locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 // "Mis pedidos" (/mis-pedidos): historial de la clienta con el estado en vivo.

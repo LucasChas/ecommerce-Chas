@@ -11,6 +11,7 @@ import CartDrawer from './components/cart/CartDrawer'
 import Footer from './components/catalog/Footer'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { TermsPage } from './pages/TermsPage'
+import { tienda } from './tienda'
 // El "modo" define qué expone cada deploy (ver VITE_APP_MODE en .env):
 //   - 'admin'   -> deploy privado: SOLO el panel, servido en la raíz "/".
 //   - 'catalog' -> deploy público: muestrario + páginas de producto. /admin no existe.
@@ -27,22 +28,25 @@ function CatalogLayout() {
     <>
       <Outlet />
       <Footer />
-      <CartDrawer />
+      {tienda().features.carrito && <CartDrawer />}
     </>
   )
 }
 
 // Rutas públicas del catálogo (se reusan en modo 'catalog' y en local).
+// Las de carrito y cuentas solo existen si la tienda tiene esas features
+// (tienda.config.mjs → features); si no, caen en el redirect a "/".
 function RutasCatalogo() {
+  const { carrito, cuentas } = tienda().features
   return (
     <Route element={<CatalogLayout />}>
       <Route path="/" element={<CatalogPage />} />
       <Route path="/producto/:param" element={<ProductPage />} />
-      <Route path="/carrito" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/cuenta" element={<AccountPage />} />
-      <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />
-      <Route path="/mis-pedidos" element={<MyOrdersPage />} />
+      {carrito && <Route path="/carrito" element={<CartPage />} />}
+      {carrito && <Route path="/checkout" element={<CheckoutPage />} />}
+      {cuentas && <Route path="/cuenta" element={<AccountPage />} />}
+      {cuentas && <Route path="/restablecer-contrasena" element={<ResetPasswordPage />} />}
+      {cuentas && <Route path="/mis-pedidos" element={<MyOrdersPage />} />}
       <Route path="/privacidad" element={<PrivacyPage />} />
       <Route path="/terminos" element={<TermsPage />} />
     </Route>
@@ -80,6 +84,7 @@ export default function App() {
       <Routes>
         {RutasCatalogo()}
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )

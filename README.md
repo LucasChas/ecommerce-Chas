@@ -1,169 +1,96 @@
-# Pecora — Muestrario online
+# ecommerce-chas — maqueta de tienda online personalizable
 
-Muestrario de ropa de bebé (no es un ecommerce). Los clientes navegan el
-catálogo público y, para comprar o consultar, escriben por **WhatsApp**. La
-administradora (una sola usuaria, desde el celular) carga y edita productos,
-precios, stock, categorías y fotos desde un panel mobile-first.
+Tienda online lista para instalar y personalizar para cualquier negocio:
+catálogo público, carrito y checkout, cuentas de clientes con seguimiento de
+pedidos en tiempo real, y un panel de administración pensado para usarse
+desde el celular.
 
-- **Frontend:** React + Vite + TypeScript, React Router.
-- **Backend:** Supabase (Postgres + Auth + Storage + Realtime). Sin servidor propio.
-- **Dos vistas conectadas:** todo lo que se carga en `/admin` se refleja solo en
-  el catálogo `/` gracias a Supabase Realtime.
+Nació de un proyecto real (una tienda de ropa de bebé) y se generalizó para
+que **el mismo código sirva para cualquier marca**: lo que cambia entre
+tiendas vive en una sola carpeta (`tienda/`) y en una tabla de la base que la
+dueña edita desde el panel.
 
-## Rutas
-
-| Ruta     | Vista                        | Acceso                    |
-| -------- | ---------------------------- | ------------------------- |
-| `/`      | Catálogo público (cliente)   | Sin login                 |
-| `/admin` | Panel de administración      | Requiere login (Supabase) |
+- **Frontend:** React 18 + Vite + TypeScript, React Router, CSS plano.
+- **Backend:** Supabase (Postgres + Auth + Storage + Realtime + Edge Functions). Sin servidor propio.
+- **Deploy:** Vercel o Netlify (dos deploys desde el mismo repo: tienda pública y panel privado).
 
 ---
 
-## 1. Crear el proyecto en Supabase
-
-1. Entrá a [supabase.com](https://supabase.com) y creá un proyecto nuevo.
-2. Anotá, en **Project Settings → API**:
-   - **Project URL** → será `VITE_SUPABASE_URL`.
-   - **anon public key** → será `VITE_SUPABASE_ANON_KEY`.
-   (La clave `anon` es segura para el frontend: la seguridad la da RLS.)
-
-### Crear el usuario administrador (la única cuenta)
-
-En **Authentication → Users → Add user**, creá el usuario con **email + contraseña**
-(marcá "Auto Confirm" para que quede confirmado). Ese email y contraseña son los
-que se usan para entrar a `/admin`. No hace falta sistema de roles: es un solo usuario.
-
-> Recomendado: en **Authentication → Providers → Email**, desactivá
-> "Enable Sign Up" para que nadie más pueda registrarse.
-
----
-
-## 2. Correr las migraciones
-
-El esquema completo (tablas, RLS, bucket de Storage, triggers y Realtime) está en
-[`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
-
-**Opción rápida (recomendada):**
-1. En el dashboard de Supabase, abrí **SQL Editor → New query**.
-2. Pegá todo el contenido de `0001_init.sql` y ejecutá (**Run**).
-
-Esto crea:
-- Tablas `categorias` y `productos`.
-- Políticas **RLS**: lectura pública; escritura solo para usuarios autenticados.
-- Bucket de Storage **`productos`** (público para lectura, escritura autenticada).
-- Trigger que **impide borrar una categoría con productos** (reforzado en el backend).
-- Realtime habilitado en ambas tablas.
-
-> Si querés arrancar con algunas categorías de ejemplo, descomentá el bloque final del SQL.
-
----
-
-## 3. Configurar las variables de entorno
-
-Copiá el ejemplo y completá con tus valores:
-
-```bash
-cp .env.example .env
-```
-
-```env
-VITE_SUPABASE_URL=https://TU-PROYECTO.supabase.co
-VITE_SUPABASE_ANON_KEY=TU-ANON-KEY
-VITE_WHATSAPP_NUMBER=5490000000000
-```
-
-- `VITE_WHATSAPP_NUMBER`: número al que escriben los clientes, en formato
-  internacional **sin `+` ni espacios**. Argentina: `549` + código de área + número.
-
----
-
-## 4. Correr el proyecto local
-
-```bash
-npm install
-npm run dev
-```
-
-- Catálogo: <http://localhost:5173/>
-- Admin: <http://localhost:5173/admin>
-
-Para probar el build de producción:
-
-```bash
-npm run build
-npm run preview
-```
-
----
-
-## 5. Deploy en Vercel — dos URLs (muestrario público + admin privado)
-
-La app usa la variable `VITE_APP_MODE` para exponer una sola vista por deploy.
-Con eso creás **dos proyectos de Vercel desde el MISMO repo**: uno público
-(muestrario) y otro privado (admin), cada uno con su dominio. El admin **no es
-accesible** desde la web pública porque en ese deploy la ruta ni se registra.
-
-**Variables comunes a los dos** (Project Settings → Environment Variables):
-`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_WHATSAPP_NUMBER`.
-En ambos, framework preset **Vite** (build `npm run build`, output `dist`).
-
-### Proyecto 1 — Muestrario (público)
-1. Vercel → **Add New → Project** → importá el repo `LucasChas/Pecora`.
-2. Agregá las 3 variables comunes **+** `VITE_APP_MODE = catalog`.
-3. Deploy. Ese dominio (ej. `pecora.vercel.app`) es el que compartís con clientes.
-
-### Proyecto 2 — Admin (privado)
-1. Vercel → **Add New → Project** → importá **el mismo repo** otra vez.
-2. Poné un nombre distinto (ej. `pecora-admin`) → dominio propio, ej.
-   `pecora-admin.vercel.app` (o uno menos adivinable).
-3. Agregá las 3 variables comunes **+** `VITE_APP_MODE = admin`.
-4. Deploy. Ese link es el que usan solo vos y tu novia; el panel abre en la raíz `/`.
-
-> La privacidad real la sigue dando el **login + RLS**: aunque alguien encuentre
-> la URL del admin, sin usuario y contraseña no puede hacer nada.
-
-Ambos proyectos apuntan a la misma base de Supabase, así que lo que se carga en
-el admin aparece automáticamente en el muestrario.
-
-Ya incluido: [`vercel.json`](vercel.json) con el rewrite de SPA (para que las
-rutas no den 404 al recargar).
-
-### Alternativa: Netlify
-- Build command: `npm run build` · Publish directory: `dist`
-- Mismo esquema de dos sitios con `VITE_APP_MODE`.
-- Ya incluido: [`netlify.toml`](netlify.toml) y [`public/_redirects`](public/_redirects).
-
----
-
-## Estructura del proyecto
+## Cómo está organizado
 
 ```
-src/
-  lib/            supabaseClient, config de WhatsApp, formato de precios
-  hooks/          useProducts, useCategories, useAuth (fetch + Realtime)
-  components/
-    catalog/      SearchBar, CategoryFilters, ProductGrid, ProductCard
-    admin/        LoginForm, StatsStrip, ProductList, ProductCard,
-                  ProductFormSheet, ImagePicker, CategoryManagerSheet
-    Logo, Scallop (elementos de marca compartidos)
-  pages/          CatalogPage, AdminPage
-  styles/         tokens.css (paleta), global.css, catalog.css, admin.css
+tienda/                  ← LO ÚNICO QUE SE TOCA POR CLIENTE
+  tienda.config.mjs      marca, contacto, región/moneda, colores, features, textos
+  tema.css               ajustes finos de estilo (opcional)
+  public/                logo, favicon y archivos públicos
+src/                     núcleo genérico (igual para todas las tiendas)
+  tienda/                lee la config y la combina con la tabla "configuracion"
 supabase/
-  migrations/     0001_init.sql
+  migrations/            esquema versionado (0001 → 0014)
+  instalar.sql           todas las migraciones juntas (generado)
+  auth-email-templates/  plantillas de mails de Auth con %TIENDA_*%
+  functions/             Edge Function del recibo de compra por mail
+scripts/                 asistente de alta, generador de mails y de instalar.sql
+docs/                    plan de la maqueta y guía de instalación
 ```
 
-## Reemplazar el logo
+### Tres niveles de personalización
 
-El isologo del header vive en [`src/assets/logo.png`](src/assets/logo.png) y el
-favicon en `src/assets/logo-index.jpeg`. Para cambiarlos, reemplazá esos archivos
-(sirve `.png`, `.webp`, `.jpeg` o `.svg`). Si cambiás la extensión del isologo,
-ajustá el import en [`src/components/Logo.tsx`](src/components/Logo.tsx).
+| Qué | Dónde | Quién |
+|---|---|---|
+| Nombre, eslogan, logo, colores, WhatsApp, Instagram, email, URL | Panel → **Mi tienda** (tabla `configuracion`) | La dueña, sin redeploy |
+| Moneda, locale, fuentes, ornamento, features, textos de mensajes, legales | `tienda/tienda.config.mjs` | Quien instala |
+| Estilos puntuales | `tienda/tema.css` | Quien instala |
 
-## Notas de diseño
+Lo que se guarda desde el panel **pisa** a lo del archivo campo por campo;
+un campo vacío vuelve al valor del archivo.
 
-- Paleta y tipografías (Fraunces + Inter) salen de los prototipos y están
-  centralizadas en `src/styles/tokens.css`.
-- El **borde festoneado** debajo del header del catálogo es un elemento de marca
-  (componente `Scallop`), no decoración genérica.
-- La **disponibilidad** de un producto se calcula desde `stock` (`stock > 0`), no
-  es un campo aparte.
+### Features (planes)
+
+En `tienda.config.mjs → features`:
+
+| Feature | `true` | `false` |
+|---|---|---|
+| `carrito` | Carrito, checkout y pedidos online | **Modo muestrario**: cada producto tiene su botón de consulta por WhatsApp/Instagram |
+| `cuentas` | Registro, login y "Mis pedidos" | Sin cuentas (solo posible sin carrito) |
+| `pedidosManuales` | El admin puede cargar pedidos a mano | Se oculta el botón |
+
+### Colores
+
+El núcleo usa variables por **función** (`--color-primario`, `--color-fondo`,
+`--color-texto`…) definidas en `src/styles/tokens.css`. Se eligen 3 colores y
+el resto (hover, fondos suaves, bordes) se calcula con `color-mix()`.
+
+---
+
+## Instalar una tienda nueva
+
+Resumen (el paso a paso, incluido el deploy, está en
+[`docs/INSTALACION.md`](docs/INSTALACION.md)):
+
+```bash
+pnpm install
+pnpm nueva-tienda        # asistente: nombre, contacto, colores, moneda, modo
+```
+
+1. Crear el proyecto en Supabase y pegar `supabase/instalar.sql` en el SQL Editor.
+2. Crear la cuenta de la dueña en Authentication y correr
+   `select public.promover_admin('email');`.
+3. Pegar los mails de `supabase/auth-email-templates/generadas/`.
+4. `cp .env.example .env` con la URL y la anon key.
+5. `pnpm dev` → tienda en `/`, panel en `/admin`.
+
+## Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `pnpm dev` | Servidor local |
+| `pnpm build` | Chequeo de tipos + build de producción |
+| `pnpm nueva-tienda` | Asistente de alta de una tienda |
+| `pnpm emails` | Genera los mails de Auth con los datos de la tienda |
+| `pnpm sql:instalacion` | Regenera `supabase/instalar.sql` (correrlo al agregar migraciones) |
+
+## Hoja de ruta
+
+Ver [`docs/PLAN_MAQUETA.md`](docs/PLAN_MAQUETA.md) (plan completo y estado de
+cada fase).

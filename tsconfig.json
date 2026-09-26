@@ -9,6 +9,8 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
@@ -19,6 +21,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "tienda"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

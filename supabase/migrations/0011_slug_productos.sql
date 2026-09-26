@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0011: slugs únicos para los productos
+-- Migración 0011: slugs únicos para los productos
 --
 -- Por qué: /producto/:id mostraba links feos e ilegibles (un uuid). Ahora cada
 -- producto tiene un "slug" (ej: "body-manga-larga") generado a partir del

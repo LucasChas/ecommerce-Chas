@@ -1,32 +1,23 @@
 import type { ProductoConCategoria } from '../types'
 import { money } from './format'
+import { tienda, textoTienda } from '../tienda'
 
 // ============================================================================
-// Configuración de contacto (WhatsApp + Instagram).
-// Todo lo "de negocio" que puede cambiar vive acá y/o en variables de entorno,
-// para no tener que tocar componentes. Pensado para escalar: si mañana sumás
-// más canales de contacto, se agregan en este único lugar.
+// Links de contacto (WhatsApp + Instagram).
+// El número, el usuario y los textos de los mensajes salen de la config de la
+// tienda (tienda/tienda.config.mjs o la pestaña "Mi tienda" del admin).
 // ============================================================================
 
-// Número de WhatsApp (formato internacional sin + ni espacios). Viene del .env.
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '5490000000000'
+const whatsapp = () => tienda().contacto.whatsapp
+const instagram = () => tienda().contacto.instagram
 
-// Usuario de Instagram (sin @). Viene del .env. Si queda vacío, no se muestra
-// el botón de Instagram en la UI.
-const INSTAGRAM_USER = import.meta.env.VITE_INSTAGRAM_USER || ''
-
-// Mensajes prellenados de WhatsApp. Cambiá el texto acá si querés otro tono.
-function mensajeWhatsApp(producto: ProductoConCategoria): string {
-  const disponible = producto.stock > 0
-  return disponible
-    ? `Hola! Quería consultar por "${producto.nombre}" (Pecora) que vi en la web.`
-    : `Hola! Quería consultar disponibilidad de "${producto.nombre}" (Pecora).`
-}
-
-// Link de WhatsApp (wa.me) con el mensaje ya cargado.
+// Link de WhatsApp (wa.me) con el mensaje de consulta por un producto.
 export function waLink(producto: ProductoConCategoria): string {
-  const msg = mensajeWhatsApp(producto)
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`
+  const msg = textoTienda(
+    producto.stock > 0 ? 'whatsappConsulta' : 'whatsappConsultaSinStock',
+    { producto: producto.nombre },
+  )
+  return `https://wa.me/${whatsapp()}?text=${encodeURIComponent(msg)}`
 }
 
 // Ítem mínimo para armar el mensaje de pedido.
@@ -62,40 +53,51 @@ export function waPedidoConfirmadoLink(
       ? `Envío a domicilio: ${datos.direccion ?? ''}, ${datos.localidad ?? ''} (CP ${datos.cp ?? ''})`
       : 'Entrega: a coordinar / retiro'
   const partes = [
-    `Hola! Soy ${datos.nombre}. Acabo de hacer el pedido #${numero} en la web de Pecora:`,
+    textoTienda('whatsappPedido', { nombre: datos.nombre, numero }),
     lineas,
     `Subtotal: ${money(subtotal)}`,
     entrega,
   ]
   if (datos.notas) partes.push(`Notas: ${datos.notas}`)
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(partes.join('\n\n'))}`
+  return `https://wa.me/${whatsapp()}?text=${encodeURIComponent(partes.join('\n\n'))}`
 }
 
-// Link de WhatsApp para preguntar por qué se canceló un pedido. Lo usa la
-// clienta desde "Mis pedidos": es su única vía para entender qué pasó.
+// Link de WhatsApp para preguntar por qué se canceló un pedido. Lo usa el
+// cliente desde "Mis pedidos": es su única vía para entender qué pasó.
 export function waConsultaCancelacionLink(numero: number): string {
-  const msg =
-    `Hola! Vi que mi pedido #${numero} en Pecora figura como cancelado. ` +
-    '¿Me podrías decir qué pasó?'
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`
+  const msg = textoTienda('whatsappCancelacion', { numero })
+  return `https://wa.me/${whatsapp()}?text=${encodeURIComponent(msg)}`
+}
+
+// Link de WhatsApp desde el admin hacia el teléfono de un cliente. Si el
+// número se cargó sin código de país, se le antepone el prefijo de la región.
+export function waAClienteLink(telefono: string, numero: number): string {
+  const { codigoPais, prefijoWhatsapp } = tienda().region
+  let d = telefono.replace(/\D/g, '')
+  if (d.startsWith('0')) d = d.slice(1)
+  if (!d.startsWith(codigoPais)) d = prefijoWhatsapp + d
+  const msg = textoTienda('whatsappAdminACliente', { numero })
+  return `https://wa.me/${d}?text=${encodeURIComponent(msg)}`
 }
 
 // ¿Está configurado Instagram? (para mostrar u ocultar el botón)
-export const instagramHabilitado = INSTAGRAM_USER !== ''
+export function instagramHabilitado(): boolean {
+  return instagram() !== ''
+}
 
 // Link de perfil de Instagram (para contacto general, ej. en el footer).
 export function instagramPerfilLink(): string {
-  return `https://instagram.com/${INSTAGRAM_USER}`
+  return `https://instagram.com/${instagram()}`
 }
 
 // Link de WhatsApp genérico (sin producto), para contacto general en el footer.
 export function waPerfilLink(): string {
-  return `https://wa.me/${WHATSAPP_NUMBER}`
+  return `https://wa.me/${whatsapp()}`
 }
 
 // Link de mensaje directo (DM) de Instagram. ig.me/m abre el chat con la marca,
 // análogo a wa.me. Instagram no permite prellenar el texto, así que el mensaje
 // lo escribe la clienta (a diferencia de WhatsApp).
 export function instagramDmLink(): string {
-  return `https://ig.me/m/${INSTAGRAM_USER}`
+  return `https://ig.me/m/${instagram()}`
 }

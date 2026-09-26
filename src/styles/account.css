@@ -19,10 +19,10 @@
 
 /* ---------- Card de login / registro ---------- */
 .account-card {
-  background: #fff;
+  background: var(--color-tarjeta);
   border-radius: var(--radius);
   padding: 22px;
-  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.08);
+  box-shadow: 0 1px 3px rgba(var(--sombra-rgb), 0.08);
 }
 .account-tabs {
   display: flex;
@@ -31,9 +31,9 @@
 }
 .account-tabs button {
   flex: 1;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--ink-soft);
+  border: 1px solid var(--color-borde);
+  background: var(--color-tarjeta);
+  color: var(--color-texto-suave);
   font-weight: 700;
   font-size: 0.9rem;
   padding: 10px;
@@ -41,23 +41,23 @@
   cursor: pointer;
 }
 .account-tabs button.active {
-  background: var(--sage);
-  color: #fff;
-  border-color: var(--sage);
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
+  border-color: var(--color-primario);
 }
 .account-intro {
   font-size: 0.85rem;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   margin: 0 0 16px;
   text-align: center;
 }
 .account-aviso {
-  background: var(--sage-pale);
-  border: 1px solid var(--sage);
+  background: var(--color-primario-suave);
+  border: 1px solid var(--color-primario);
   border-radius: 10px;
   padding: 11px 13px;
   font-size: 0.85rem;
-  color: var(--ink);
+  color: var(--color-texto);
   margin: 0 0 12px;
 }
 .account-card .pp-back {
@@ -71,13 +71,13 @@
   padding: 0;
   font-size: 0.82rem;
   font-weight: 700;
-  color: var(--sage-deep);
+  color: var(--color-primario-hover);
   cursor: pointer;
   margin: -4px 0 14px;
   text-align: right;
 }
 .account-link-btn:hover {
-  color: var(--ink);
+  color: var(--color-texto);
   text-decoration: underline;
 }
 .account-card a.btn-primary {
@@ -96,24 +96,24 @@
   font-size: 0.78rem;
   font-weight: 700;
   margin-bottom: 5px;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
 }
 .account-form .field input {
   width: 100%;
-  font-family: 'Inter', sans-serif;
-  border: 1px solid var(--line);
+  font-family: var(--fuente-texto);
+  border: 1px solid var(--color-borde);
   border-radius: 10px;
   padding: 11px 12px;
   font-size: 0.95rem;
-  background: #fff;
-  color: var(--ink);
+  background: var(--color-tarjeta);
+  color: var(--color-texto);
 }
 .account-form .field input:focus {
-  outline: 2px solid var(--sage);
+  outline: 2px solid var(--color-primario);
   outline-offset: 1px;
 }
 .account-form .form-error {
-  color: var(--danger);
+  color: var(--color-peligro);
   font-size: 0.82rem;
   margin: 0 0 12px;
 }
@@ -125,11 +125,11 @@
   gap: 12px;
 }
 .mp-card {
-  background: #fff;
+  background: var(--color-tarjeta);
   border-radius: var(--radius);
-  border-left: 4px solid var(--line);
+  border-left: 4px solid var(--color-borde);
   padding: 20px 22px;
-  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.08);
+  box-shadow: 0 1px 3px rgba(var(--sombra-rgb), 0.08);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -137,22 +137,22 @@
 }
 .mp-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(51, 48, 42, 0.12);
+  box-shadow: 0 10px 24px rgba(var(--sombra-rgb), 0.12);
 }
 /* Mismo color por estado que la pastilla `.mp-estado`, para que se lea de
    un vistazo incluso sin leer el texto (igual criterio que .order-card del
    panel admin). */
 .mp-card.e-nuevo {
-  border-left-color: var(--sage);
+  border-left-color: var(--color-primario);
 }
 .mp-card.e-confirmado {
-  border-left-color: var(--clay);
+  border-left-color: var(--color-acento);
 }
 .mp-card.e-entregado {
-  border-left-color: var(--success);
+  border-left-color: var(--color-exito);
 }
 .mp-card.e-cancelado {
-  border-left-color: var(--danger);
+  border-left-color: var(--color-peligro);
 }
 .mp-top {
   display: flex;
@@ -162,13 +162,13 @@
   flex-wrap: wrap;
 }
 .mp-num {
-  font-family: 'Fraunces', serif;
+  font-family: var(--fuente-titulos);
   font-weight: 600;
   font-size: 1.1rem;
 }
 .mp-fecha {
   font-size: 0.75rem;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   margin-left: 8px;
 }
 .mp-estado {
@@ -179,20 +179,20 @@
   white-space: nowrap;
 }
 .mp-estado.e-nuevo {
-  background: var(--sage-pale);
-  color: var(--sage-deep);
+  background: var(--color-primario-suave);
+  color: var(--color-primario-hover);
 }
 .mp-estado.e-confirmado {
   background: #FBEBD8;
-  color: var(--clay);
+  color: var(--color-acento);
 }
 .mp-estado.e-entregado {
-  background: var(--success-pale);
-  color: var(--success);
+  background: var(--color-exito-suave);
+  color: var(--color-exito);
 }
 .mp-estado.e-cancelado {
-  background: var(--danger-pale);
-  color: var(--danger);
+  background: var(--color-peligro-suave);
+  color: var(--color-peligro);
 }
 .mp-items {
   display: flex;
@@ -222,20 +222,20 @@
   line-height: 0;
 }
 .mp-item-img-btn:focus-visible {
-  outline: 2px solid var(--sage);
+  outline: 2px solid var(--color-primario);
   outline-offset: 2px;
 }
 .mp-item-img {
   width: 56px;
   height: 56px;
   border-radius: 10px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--color-borde);
   object-fit: cover;
-  background: var(--cream-deep);
-  box-shadow: 0 1px 2px rgba(51, 48, 42, 0.08);
+  background: var(--color-superficie);
+  box-shadow: 0 1px 2px rgba(var(--sombra-rgb), 0.08);
 }
 .mp-item.total {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--color-borde);
   margin-top: 4px;
   padding-top: 10px;
   font-size: 0.95rem;
@@ -245,8 +245,8 @@
   align-items: center;
   gap: 8px;
   font-size: 0.85rem;
-  color: var(--ink);
-  background: var(--cream);
+  color: var(--color-texto);
+  background: var(--color-fondo);
   border-radius: 10px;
   padding: 10px 12px;
 }
@@ -254,7 +254,7 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  color: var(--sage-deep);
+  color: var(--color-primario-hover);
 }
 
 /* Mobile: imagen un poco más chica y menos padding para que la card no
@@ -274,11 +274,11 @@
   align-self: flex-start;
   font-size: 0.82rem;
   font-weight: 700;
-  color: var(--sage-deep);
+  color: var(--color-primario-hover);
   text-decoration: none;
   padding: 2px 0;
 }
 .mp-consultar:hover {
-  color: var(--ink);
+  color: var(--color-texto);
   text-decoration: underline;
 }

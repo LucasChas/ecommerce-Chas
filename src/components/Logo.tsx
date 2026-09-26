@@ -1,7 +1,11 @@
-import logoUrl from '../assets/logo.png'
+import { useTienda } from '../tienda'
 
-// Isologo de Pecora. La imagen se importa como asset (ver src/assets/logo.png):
-// para reemplazarlo, cambiá ese archivo o el import de arriba (sirve .png/.webp/.svg).
+// Logo de la tienda. Si la config tiene logoUrl (tienda/public o subido desde
+// el admin) se muestra la imagen; si no, el nombre como logo de texto.
 export default function Logo({ className = 'logo-img' }: { className?: string }) {
-  return <img className={className} src={logoUrl} alt="Pecora" />
+  const { config } = useTienda()
+  if (config.logoUrl) {
+    return <img className={className} src={config.logoUrl} alt={config.nombre} />
+  }
+  return <span className={`${className} logo-texto`}>{config.nombre}</span>
 }

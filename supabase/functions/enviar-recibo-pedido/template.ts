@@ -1,5 +1,5 @@
 // ============================================================================
-// Pecora — Template del email de confirmación de pedido.
+// Template del email de confirmación de pedido.
 //
 // Plain TS template literal con HTML basado en tablas + estilos inline: es lo
 // único que se renderiza de forma confiable en todos los clientes de correo
@@ -42,8 +42,18 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// Moneda y locale de la tienda (secretos opcionales STORE_LOCALE / STORE_CURRENCY,
+// los mismos valores que tienda.config.mjs → region). Default: pesos argentinos.
+const STORE_LOCALE = Deno.env.get("STORE_LOCALE") || "es-AR";
+const STORE_CURRENCY = Deno.env.get("STORE_CURRENCY") || "ARS";
+
 function formatMoney(value: number): string {
-  return `$${value.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return value.toLocaleString(STORE_LOCALE, {
+    style: "currency",
+    currency: STORE_CURRENCY,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function renderItemRow(item: ReciboItem): string {

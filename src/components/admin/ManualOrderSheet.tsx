@@ -153,7 +153,7 @@ export default function ManualOrderSheet({ open, onClose, onChanged }: Props) {
 
         <form onSubmit={onSubmit}>
           <div className="field">
-            <label>Nombre de la clienta</label>
+            <label>Nombre del cliente</label>
             <input
               type="text"
               value={nombre}

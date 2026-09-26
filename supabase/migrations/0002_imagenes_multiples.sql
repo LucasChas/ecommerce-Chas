@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0002: múltiples imágenes por producto
+-- Migración 0002: múltiples imágenes por producto
 -- Agrega la columna "imagenes" (array de URLs) para la galería del detalle.
 -- Se mantiene "imagen_url" como PORTADA (primera imagen) para la grilla del
 -- catálogo y compatibilidad con lo ya cargado.

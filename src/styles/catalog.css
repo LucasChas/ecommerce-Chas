@@ -1,11 +1,11 @@
 /* ============================================================
    Estilos de la vista CLIENTE (catálogo público).
-   Replican pecora-catalogo.html. Las clases mantienen el mismo
+   Basados en el prototipo original del catálogo. Las clases mantienen el mismo
    nombre que el prototipo para que sea fácil de comparar.
    ============================================================ */
 
 .catalog-root {
-  background: var(--cream);
+  background: var(--color-fondo);
   min-height: 100vh;
 }
 
@@ -14,8 +14,8 @@
   height: 20px;
   width: 100%;
   background:
-    radial-gradient(circle at 10px 0, transparent 10px, var(--cream) 10px) 0 -1px,
-    var(--sage);
+    radial-gradient(circle at 10px 0, transparent 10px, var(--color-fondo) 10px) 0 -1px,
+    var(--color-primario);
   background-size: 20px 20px;
   background-repeat: repeat-x;
 }
@@ -25,7 +25,7 @@
 
 /* ---------- Header ---------- */
 .catalog-root header {
-  background: var(--cream-deep);
+  background: var(--color-superficie);
   padding: 34px 24px 26px;
   text-align: center;
 }
@@ -39,7 +39,7 @@
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--sage);
+  color: var(--color-primario);
   font-weight: 600;
   margin: 0;
 }
@@ -62,26 +62,26 @@
   transform: translateY(-50%);
   width: 17px;
   height: 17px;
-  color: #A9906A;
+  color: var(--color-texto-suave);
   pointer-events: none;
 }
 .search-box input {
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--fuente-texto);
   font-size: 0.9rem;
   padding: 12px 16px 12px 42px;
   border-radius: 100px;
-  border: 1px solid var(--cream-deep);
-  background: #fff;
-  color: var(--ink);
-  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.06);
+  border: 1px solid var(--color-superficie);
+  background: var(--color-tarjeta);
+  color: var(--color-texto);
+  box-shadow: 0 1px 3px rgba(var(--sombra-rgb), 0.06);
 }
 .search-box input:focus {
   outline: none;
-  border-color: var(--sage);
+  border-color: var(--color-primario);
 }
 .search-box input::placeholder {
-  color: #B0A283;
+  color: var(--color-texto-suave);
 }
 
 /* ---------- Filtros por categoría (chips) ---------- */
@@ -95,21 +95,21 @@
   justify-content: center;
 }
 .filters button {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--fuente-texto);
   font-size: 0.85rem;
   font-weight: 500;
   padding: 9px 18px;
   border-radius: 100px;
-  border: 1px solid var(--sage);
+  border: 1px solid var(--color-primario);
   background: transparent;
-  color: var(--sage-deep);
+  color: var(--color-primario-hover);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .filters button.active,
 .filters button:hover {
-  background: var(--sage);
-  color: var(--cream);
+  background: var(--color-primario);
+  color: var(--color-fondo);
 }
 
 /* ---------- Grilla ---------- */
@@ -153,21 +153,21 @@
   }
 }
 .card {
-  background: #fff;
+  background: var(--color-tarjeta);
   border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.08);
+  box-shadow: 0 1px 3px rgba(var(--sombra-rgb), 0.08);
   display: flex;
   flex-direction: column;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 .card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(51, 48, 42, 0.10);
+  box-shadow: 0 10px 20px rgba(var(--sombra-rgb), 0.10);
 }
 .card-img {
   aspect-ratio: 1 / 1;
-  background: var(--cream-deep);
+  background: var(--color-superficie);
   position: relative;
   overflow: hidden;
 }
@@ -185,8 +185,8 @@
   position: absolute;
   top: 10px;
   left: 10px;
-  background: rgba(51, 48, 42, 0.85);
-  color: #fff;
+  background: rgba(var(--sombra-rgb), 0.85);
+  color: var(--color-sobre-primario);
   font-size: 0.68rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -201,14 +201,14 @@
   flex: 1;
 }
 .card-body h3 {
-  font-family: 'Fraunces', serif;
+  font-family: var(--fuente-titulos);
   font-weight: 500;
   font-size: 1.15rem;
   margin: 0;
 }
 .card-body .desc {
   font-size: 0.85rem;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   line-height: 1.4;
   margin: 0;
   flex: 1;
@@ -219,14 +219,14 @@
   margin: 2px 0 8px;
 }
 .card.unavailable .price {
-  color: var(--unavailable);
+  color: var(--color-agotado);
 }
 /* Aviso de pocas unidades en la card */
 .low-stock {
   margin: 0;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--danger);
+  color: var(--color-peligro);
 }
 
 .wa-btn {
@@ -238,16 +238,16 @@
   border-radius: 100px;
   font-size: 0.85rem;
   font-weight: 600;
-  background: var(--sage);
-  color: #fff;
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
   transition: background 0.15s ease;
 }
 .wa-btn:hover {
-  background: var(--sage-deep);
+  background: var(--color-primario-hover);
 }
 .card.unavailable .wa-btn {
-  background: var(--unavailable-bg);
-  color: var(--unavailable);
+  background: var(--color-agotado-fondo);
+  color: var(--color-agotado);
 }
 .card.unavailable .wa-btn:hover {
   background: #E2DED5;
@@ -262,7 +262,7 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 50px 20px;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   font-size: 0.92rem;
 }
 
@@ -276,14 +276,14 @@
   justify-content: center;
   gap: 12px;
   padding: 50px 20px;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   font-size: 0.92rem;
 }
 .loading-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid var(--line);
-  border-top-color: var(--sage);
+  border: 3px solid var(--color-borde);
+  border-top-color: var(--color-primario);
   border-radius: 50%;
   animation: loading-spin 0.7s linear infinite;
 }
@@ -298,11 +298,11 @@
    así aparece en todas las vistas públicas (muestrario, producto, carrito,
    checkout, cuenta, mis pedidos), no solo en el muestrario. */
 .site-footer {
-  background: var(--cream-deep);
+  background: var(--color-superficie);
   text-align: center;
   padding: 28px 24px;
   font-size: 0.78rem;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
 }
 .site-footer-inner {
   max-width: 1100px;
@@ -324,14 +324,14 @@
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  color: var(--sage-deep);
+  color: var(--color-primario-hover);
 }
 .site-footer-link svg {
   width: 15px;
   height: 15px;
 }
 .site-footer-link:hover {
-  color: var(--ink);
+  color: var(--color-texto);
 }
 /* Badges de medios de pago: placeholder de texto hasta contar con los
    logos reales de Abril y Mercado Pago (ver TODO(owner-assets) en Footer.tsx). */
@@ -345,12 +345,12 @@
 .payment-badge {
   padding: 5px 12px;
   border-radius: 100px;
-  border: 1px solid var(--cream-deep, #E5DFCF);
-  background: #fff;
+  border: 1px solid var(--color-superficie);
+  background: var(--color-tarjeta);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
 }
 .site-footer-copy {
   margin: 0;
@@ -392,8 +392,8 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(51, 48, 42, 0.72);
-  color: #fff;
+  background: rgba(var(--sombra-rgb), 0.72);
+  color: var(--color-sobre-primario);
   font-size: 0.66rem;
   font-weight: 600;
   padding: 4px 9px;
@@ -408,35 +408,35 @@
   margin-bottom: 16px;
 }
 .pp-breadcrumb a {
-  color: var(--sage-deep);
+  color: var(--color-primario-hover);
 }
 .pp-back {
   display: inline-block;
   margin-top: 24px;
   padding: 10px 20px;
-  border: 1px solid var(--sage);
+  border: 1px solid var(--color-primario);
   border-radius: 100px;
   font-weight: 600;
   font-family: inherit;
   font-size: 0.88rem;
-  color: var(--sage-deep);
-  background: #fff;
+  color: var(--color-primario-hover);
+  background: var(--color-tarjeta);
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
 }
 .pp-back:hover {
-  background: var(--sage);
-  color: #fff;
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
 }
 /* Contenedor galería + info (card blanca) */
 .pd-content {
   display: flex;
   gap: 28px;
-  background: #fff;
+  background: var(--color-tarjeta);
   border-radius: var(--radius);
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.08);
+  box-shadow: 0 1px 3px rgba(var(--sombra-rgb), 0.08);
 }
 
 /* Galería */
@@ -452,7 +452,7 @@
 .pd-main {
   position: relative;
   aspect-ratio: 1 / 1;
-  background: var(--cream-deep);
+  background: var(--color-superficie);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -489,10 +489,10 @@
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  background: var(--cream-deep);
+  background: var(--color-superficie);
 }
 .pd-thumb.active {
-  border-color: var(--sage);
+  border-color: var(--color-primario);
 }
 .pd-thumb img {
   width: 100%;
@@ -513,16 +513,16 @@
 .pd-breadcrumb {
   margin: 0;
   font-size: 0.72rem;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .pd-breadcrumb span {
-  color: var(--sage-deep);
+  color: var(--color-primario-hover);
   font-weight: 600;
 }
 .pd-name {
-  font-family: 'Fraunces', serif;
+  font-family: var(--fuente-titulos);
   font-weight: 600;
   font-size: 1.5rem;
   margin: 0;
@@ -533,31 +533,31 @@
   margin: 2px 0 6px;
 }
 .pd-price.off {
-  color: var(--unavailable);
+  color: var(--color-agotado);
 }
 .pd-stock-msg {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--danger);
+  color: var(--color-peligro);
   font-weight: 500;
 }
 .pd-low-stock {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--danger);
+  color: var(--color-peligro);
 }
 .pd-note {
   margin: 6px 0 0;
   font-size: 0.82rem;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   line-height: 1.5;
 }
 .pd-desc {
   margin: 0;
   font-size: 0.92rem;
   line-height: 1.55;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   white-space: pre-line;
 }
 /* Botones de consulta (WhatsApp + Instagram) */
@@ -585,13 +585,13 @@
   font-size: 0.85rem;
   font-weight: 600;
   background: transparent;
-  color: var(--sage-deep);
-  border: 1px solid var(--sage);
+  color: var(--color-primario-hover);
+  border: 1px solid var(--color-primario);
   transition: background 0.15s ease, color 0.15s ease;
 }
 .ig-btn:hover {
-  background: var(--sage);
-  color: #fff;
+  background: var(--color-primario);
+  color: var(--color-sobre-primario);
 }
 .ig-btn svg {
   width: 16px;
@@ -623,28 +623,28 @@
 }
 .legal-updated {
   font-size: 0.82rem;
-  color: var(--ink-soft);
+  color: var(--color-texto-suave);
   margin: -8px 0 20px;
 }
 .legal-card {
-  background: #fff;
+  background: var(--color-tarjeta);
   border-radius: var(--radius);
   padding: 28px 30px;
-  box-shadow: 0 1px 3px rgba(51, 48, 42, 0.08);
+  box-shadow: 0 1px 3px rgba(var(--sombra-rgb), 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;
   font-size: 0.92rem;
   line-height: 1.65;
-  color: var(--ink);
+  color: var(--color-texto);
 }
 .legal-card h2 {
-  font-family: 'Fraunces', serif;
+  font-family: var(--fuente-titulos);
   font-weight: 600;
   font-size: 1.05rem;
   margin: 8px 0 0;
   padding-top: 16px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--color-borde);
 }
 .legal-card h2:first-of-type {
   margin-top: 0;
@@ -671,25 +671,25 @@
 .legal-card td {
   text-align: left;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--color-borde);
   vertical-align: top;
 }
 .legal-card th {
-  font-family: 'Fraunces', serif;
+  font-family: var(--fuente-titulos);
   font-weight: 600;
-  color: var(--ink);
-  background: var(--cream);
+  color: var(--color-texto);
+  background: var(--color-fondo);
   white-space: nowrap;
 }
 .legal-card tr:last-child td {
   border-bottom: none;
 }
 .legal-card a {
-  color: var(--sage-deep);
+  color: var(--color-primario-hover);
   text-decoration: underline;
 }
 .legal-card strong {
-  color: var(--ink);
+  color: var(--color-texto);
 }
 .legal-page .pp-back {
   display: table;

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { money } from '../../lib/format'
+import { textoTienda } from '../../tienda'
 import type { CartItem } from '../../context/CartContext'
 
 interface Props {
@@ -40,11 +41,10 @@ export default function OrderSuccess({ waHref, entrega, items, subtotal }: Props
 
         <h2 className="success-title">¡Gracias por tu compra!</h2>
         <p className="success-text">
-          Gracias por confiar en Pecora. Ya tenemos tu pedido y lo estamos preparando con mucho
-          cariño.
+          {textoTienda('pedidoExito')}
         </p>
 
-        {/* Desglose de lo comprado, para que la clienta se lleve el detalle a la vista. */}
+        {/* Desglose de lo comprado, para que el cliente se lleve el detalle a la vista. */}
         <div className="success-detalle">
           {items.map((i) => (
             <div className="success-linea" key={i.id}>

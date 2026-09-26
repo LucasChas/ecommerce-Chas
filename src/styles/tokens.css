@@ -1,24 +1,72 @@
 /* ============================================================
-   Tokens de diseño de Pecora.
-   Paleta y radios extraídos tal cual de los prototipos HTML.
-   Cambiá acá los valores y se propagan a toda la app.
+   Tokens de diseño del núcleo.
+
+   Los colores se nombran por su FUNCIÓN (primario, fondo, texto…), no por
+   el color en sí: así cada tienda cambia la paleta sin tocar el resto del CSS.
+
+   Los tres colores base (primario, fondo, texto) los pisa en tiempo de
+   ejecución src/tienda/tema.ts con lo que diga tienda/tienda.config.mjs o la
+   tabla "configuracion" de la base. Los tonos derivados (hover, suave,
+   bordes) se calculan con color-mix(): la dueña elige UN color de marca y el
+   resto se arma solo.
+
+   Overrides finos por tienda: tienda/tema.css (se carga después de este).
    ============================================================ */
 :root {
-  --cream: #F8F1E1;         /* fondo principal (lino cálido)      */
-  --cream-deep: #EEE1C4;    /* fondo secundario / cards           */
-  --ink: #3B2F22;           /* texto principal (marrón cálido)    */
-  --ink-soft: #7C6E54;      /* texto secundario                   */
-  --sage: #B08F55;          /* dorado camel: marca, botones       */
-  --sage-deep: #8E7040;     /* hover del dorado                   */
-  --sage-pale: #F1E6CB;     /* fondo suave (pills "disponible")   */
-  --clay: #A97C55;          /* acento cálido                      */
-  --line: #E7DAB6;          /* bordes / separadores               */
-  --danger: #C9645A;        /* acciones destructivas (rojo apagado)*/
-  --danger-pale: #F3E4E1;   /* fondo de estados destructivos      */
-  --unavailable: #A79A82;   /* texto "sin stock"                  */
-  --unavailable-bg: #EFE6D2;/* fondo botón "sin stock"            */
-  --success: #7BA05B;       /* estados positivos (entregado, ok)  */
-  --success-pale: #E4EFDA;  /* fondo de estados positivos         */
+  /* --- Base (configurables) --- */
+  --color-primario: #B08F55;   /* marca: botones, links, acentos         */
+  --color-fondo: #F8F1E1;      /* fondo general de la página             */
+  --color-texto: #3B2F22;      /* texto principal                        */
+
+  /* --- Derivados del primario --- */
+  --color-primario-hover: color-mix(in srgb, var(--color-primario) 80%, black);
+  --color-primario-suave: color-mix(in srgb, var(--color-primario) 22%, white);
+  --color-acento: color-mix(in srgb, var(--color-primario) 85%, #8a4a2a);
+
+  /* --- Derivados del fondo / texto --- */
+  --color-superficie: color-mix(in srgb, var(--color-fondo) 88%, var(--color-primario));
+  --color-borde: color-mix(in srgb, var(--color-fondo) 80%, var(--color-primario));
+  --color-texto-suave: color-mix(in srgb, var(--color-texto) 65%, var(--color-fondo));
+  --color-tarjeta: #fff;           /* fondo de cards, inputs y modales   */
+  --color-sobre-primario: #fff;    /* texto encima de un fondo primario  */
+  --sombra-rgb: 51, 48, 42;        /* base de sombras y velos (r, g, b)  */
+
+  /* --- Estados (semánticos, iguales para todas las tiendas) --- */
+  --color-peligro: #C9645A;
+  --color-peligro-suave: #F3E4E1;
+  --color-agotado: color-mix(in srgb, var(--color-texto-suave) 70%, var(--color-fondo));
+  --color-agotado-fondo: color-mix(in srgb, var(--color-superficie) 70%, var(--color-fondo));
+  --color-exito: #7BA05B;
+  --color-exito-suave: #E4EFDA;
+
+  /* --- Tipografías (configurables en tienda.config.mjs → tema) --- */
+  --fuente-titulos: 'Fraunces', serif;
+  --fuente-texto: 'Inter', sans-serif;
+
+  /* --- Forma --- */
   --radius: 14px;
-  --radius-lg: 20px;        /* modales (success/dialog)           */
+  --radius-lg: 20px;
+}
+
+/* Logo de texto: se usa cuando la tienda no cargó un logo en imagen. */
+.logo-texto {
+  display: block;
+  margin: 0 auto 10px;
+  font-family: var(--fuente-titulos);
+  font-size: clamp(30px, 5vw, 46px);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--color-texto);
+  text-align: center;
+  height: auto;
+}
+/* La barra del panel es oscura (fondo = color de texto): el logo va claro. */
+.topbar .logo-texto {
+  font-size: 20px;
+  margin: 0;
+  text-align: left;
+  color: var(--color-fondo);
+}
+.login-root .logo-texto {
+  margin: 0 auto 6px;
 }

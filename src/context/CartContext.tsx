@@ -35,7 +35,7 @@ interface CartContextValue {
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
-const STORAGE_KEY = 'pecora_cart_v1'
+const STORAGE_KEY = 'tienda_cart_v1'
 
 function leerStorage(): CartItem[] {
   try {

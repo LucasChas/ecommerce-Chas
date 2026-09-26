@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0005: cuentas de clientas + roles + seguridad
+-- Migración 0005: cuentas de clientas + roles + seguridad
 --
 -- Introduce cuentas de clientas (Supabase Auth) y separa permisos:
 --   - "cliente": puede crear pedidos y ver SOLO los suyos.
@@ -60,12 +60,9 @@ returns boolean language sql security definer stable set search_path = public as
   select exists (select 1 from public.profiles where id = auth.uid() and rol = 'admin');
 $$;
 
--- Marca como admin a la cuenta de la administradora.  <-- CAMBIÁ el email si hace falta
-insert into public.profiles (id, rol, nombre)
-select id, 'admin', 'Pecora'
-from auth.users
-where email in ('luquitaschasdiaz3@gmail.com', 'abrileder27@gmail.com')
-on conflict (id) do update set rol = 'admin';
+-- El admin NO se marca acá: después de instalar, creá el usuario en
+-- Authentication → Users y corré  select public.promover_admin('email@...');
+-- (función de la migración 0014).
 
 -- ----------------------------------------------------------------------------
 -- Pedidos: se ligan a la cuenta de la clienta.

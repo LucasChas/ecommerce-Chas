@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración inicial
+-- Migración inicial
 -- Crea tablas (categorias, productos), políticas RLS, bucket de Storage y
 -- la validación de backend que impide borrar categorías con productos.
 --

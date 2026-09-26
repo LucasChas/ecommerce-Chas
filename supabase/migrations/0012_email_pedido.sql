@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0012: email de confirmación de pedido
+-- Migración 0012: email de confirmación de pedido
 --
 -- Por qué: cuando se crea un pedido (crear_pedido()), nadie le manda a la
 -- clienta un comprobante por mail con el detalle de lo que compró. Este
@@ -23,11 +23,11 @@
 --
 --        select vault.create_secret(
 --          'https://<tu-proyecto>.supabase.co/functions/v1/enviar-recibo-pedido',
---          'pecora_email_function_url'
+--          'tienda_email_function_url'
 --        );
 --        select vault.create_secret(
 --          '<tu-service-role-key>',
---          'pecora_email_function_token'
+--          'tienda_email_function_token'
 --        );
 --
 --      El token recomendado es la service-role key del proyecto: la Edge
@@ -65,11 +65,11 @@ begin
   begin
     select decrypted_secret into v_url
       from vault.decrypted_secrets
-     where name = 'pecora_email_function_url';
+     where name = 'tienda_email_function_url';
 
     select decrypted_secret into v_token
       from vault.decrypted_secrets
-     where name = 'pecora_email_function_token';
+     where name = 'tienda_email_function_token';
 
     -- Si todavía no se cargaron los secretos en Vault (deploy en progreso,
     -- entorno recién levantado, etc.), no hay nada para llamar: salimos

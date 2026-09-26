@@ -1,5 +1,5 @@
 -- ============================================================================
--- Pecora — Migración 0010: la clienta ve sus pedidos eliminados como cancelados
+-- Migración 0010: la clienta ve sus pedidos eliminados como cancelados
 --
 -- La 0009 le ocultaba a la clienta los pedidos que la admin mandaba a la
 -- papelera. Eso era peor: el pedido desaparecía sin explicación y la clienta no

@@ -27,3 +27,6 @@ supabase/.temp
 *.njsproj
 *.sln
 *.sw?
+
+# Mails de Auth generados por `pnpm emails` (dependen de cada tienda)
+supabase/auth-email-templates/generadas/

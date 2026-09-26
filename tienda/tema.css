@@ -1,0 +1,16 @@
+/* ============================================================
+   Ajustes de estilo propios de esta tienda (opcional).
+
+   Se carga DESPUÉS del CSS del núcleo, así que cualquier regla de acá
+   lo pisa. Los colores base y las fuentes conviene cambiarlos en
+   tienda.config.mjs (o desde el admin); usá este archivo para lo que
+   la config no cubre. Ejemplos:
+
+   :root {
+     --radius: 6px;                    // esquinas más rectas
+     --color-tarjeta: #fffdf8;         // cards levemente cremas
+     --color-exito: #2f855a;
+   }
+
+   .catalog-root header { padding-block: 48px; }
+   ============================================================ */
